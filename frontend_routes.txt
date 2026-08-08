@@ -1,0 +1,5 @@
+/user/register => user registration 
+/user/login => userlogin 
+
+/foodPartner/register => foodPartner registration
+/foodPartner/login => foodPartnet login

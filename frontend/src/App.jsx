@@ -779,7 +779,10 @@ function App() {
       {/* 1. INSTAGRAM WEB LEFT SIDEBAR NAVIGATION */}
       <aside className="ig-left-sidebar">
         <div className="ig-sidebar-header" onClick={() => setCurrentView('feed')}>
-          <h1 className="ig-logo-text">Zesty</h1>
+          <div className="ig-logo-container">
+            <img src="/favicon.svg" alt="Zesty Logo" className="ig-logo-icon" />
+            <h1 className="ig-logo-text">Zesty</h1>
+          </div>
         </div>
 
         <div className="ig-nav-menu">

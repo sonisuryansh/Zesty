@@ -20,14 +20,8 @@ export default function RestaurantProfile({ restaurantId, onBack, onOpenRestaura
         setFoodItems(data.foodItems || [])
       }
     } catch {
-      // Fallback demo restaurant if id unavailable
-      setRestaurant({
-        name: 'The Artisan Craft Kitchen',
-        cuisine: 'Gourmet Smashed Burgers & Pizzas',
-        rating: 4.9,
-        isOnline: true,
-        location: { address: 'Block C, Connaught Place, New Delhi' }
-      })
+      setRestaurant(null)
+      setFoodItems([])
     } finally {
       setLoading(false)
     }

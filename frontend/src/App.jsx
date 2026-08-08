@@ -19,65 +19,8 @@ import AdminControlPanel from './components/AdminControlPanel'
 const API = '/api'
 let socket = null
 
-const DEMO_REELS = [
-  {
-    _id: 'demo-1',
-    name: 'Truffle Smashed Wagyu Cheeseburger 🍔',
-    description: 'Double smashed wagyu patty, melted swiss, black truffle aioli & crispy shallots.',
-    category: 'Fast Food',
-    price: 349,
-    packagingCharge: 20,
-    video: 'https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-fluffy-burger-41508-large.mp4',
-    foodPartner: { _id: 'rest-1', name: 'The Burger Craft Kitchen', isOnline: true, rating: 4.9 }
-  },
-  {
-    _id: 'demo-2',
-    name: 'Neapolitan Wood-Fired Pizza 🍕',
-    description: 'San Marzano tomato sauce, fresh buffalo mozzarella & aromatic basil leaves.',
-    category: 'Trending',
-    price: 499,
-    packagingCharge: 25,
-    video: 'https://assets.mixkit.co/videos/preview/mixkit-slice-of-pizza-with-melting-cheese-41512-large.mp4',
-    foodPartner: { _id: 'rest-2', name: 'Bella Italia Pizzeria', isOnline: true, rating: 4.8 }
-  },
-  {
-    _id: 'demo-3',
-    name: 'Triple Chocolate Soufflé Pancake Stack 🥞',
-    description: 'Fluffy soufflé pancakes drenched in Belgian dark chocolate ganache & fresh berries.',
-    category: 'Dessert',
-    price: 299,
-    packagingCharge: 15,
-    video: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-chocolate-sauce-over-pancakes-41516-large.mp4',
-    foodPartner: { _id: 'rest-3', name: 'Sweet Tooth Artisan Bakery', isOnline: true, rating: 4.7 }
-  },
-  {
-    _id: 'demo-4',
-    name: 'Chef Special Garlic Cream Fettuccine 🍝',
-    description: 'Handmade fettuccine tossed in rich creamy parmesan garlic sauce & toasted herbs.',
-    category: 'Trending',
-    price: 399,
-    packagingCharge: 20,
-    video: 'https://assets.mixkit.co/videos/preview/mixkit-chef-preparing-a-gourmet-dish-41484-large.mp4',
-    foodPartner: { _id: 'rest-4', name: 'Chef Mario Gourmet Studio', isOnline: true, rating: 4.9 }
-  },
-  {
-    _id: 'demo-5',
-    name: 'Tropical Acai Berry Fusion Smoothie 🍹',
-    description: 'Organic acai, wild blueberries, almond milk & chia seed crunchy topping.',
-    category: 'Healthy',
-    price: 199,
-    packagingCharge: 10,
-    video: 'https://assets.mixkit.co/videos/preview/mixkit-fresh-fruit-smoothie-in-a-glass-41520-large.mp4',
-    foodPartner: { _id: 'rest-5', name: 'Pure Green Elixirs', isOnline: true, rating: 4.8 }
-  }
-]
-
-const SUGGESTED_CREATORS = [
-  { id: 's1', username: 'bella_italia_pizzeria', name: 'Bella Italia Pizzeria', handle: 'bella_italia', avatar: '🍕', sub: 'Followed by higgs_monaghar' },
-  { id: 's2', username: 'burger_craft', name: 'The Burger Craft', handle: 'burger_craft', avatar: '🍔', sub: 'Followed by higgs_monaghar' },
-  { id: 's3', username: 'sweet_tooth_bakery', name: 'Sweet Tooth Bakery', handle: 'sweet_tooth', avatar: '🍰', sub: 'Suggested for you' },
-  { id: 's4', username: 'chef_mario_studio', name: 'Chef Mario Studio', handle: 'chef_mario', avatar: '🍝', sub: 'Suggested for you' }
-]
+const DEMO_REELS = []
+const SUGGESTED_CREATORS = []
 
 async function request(path, options = {}) {
   const response = await fetch(`${API}${path}`, {
@@ -232,13 +175,9 @@ function App() {
     setLoadingFeed(true)
     try {
       const data = await request('/food')
-      if (data.foodItems && data.foodItems.length > 0) {
-        setFoods(data.foodItems)
-      } else {
-        setFoods(DEMO_REELS)
-      }
+      setFoods(data.foodItems || [])
     } catch (err) {
-      setFoods(DEMO_REELS)
+      setFoods([])
     } finally {
       setLoadingFeed(false)
     }
@@ -1034,28 +973,41 @@ function App() {
                 </div>
               ) : (
                 <div className="ig-reels-list">
-                  {filteredFoods.map((food) => (
-                    <ReelCard
-                      key={food._id}
-                      food={food}
-                      onAddToCart={handleAddToCart}
-                      onOpenRestaurant={(partnerId, info) => {
-                        setRestaurantViewId(partnerId)
-                        setSelectedRestaurantInfo(info)
-                        setCurrentView('restaurant')
-                      }}
-                      onEmailOrder={(foodItem) => {
-                        setSelectedFoodForOrder(foodItem)
-                        setModal('order')
-                      }}
-                      isLiked={likedDishes.includes(food._id)}
-                      onToggleLike={(id) => {
-                        setLikedDishes((prev) =>
-                          prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-                        )
-                      }}
-                    />
-                  ))}
+                  {filteredFoods.length > 0 ? (
+                    filteredFoods.map((food) => (
+                      <ReelCard
+                        key={food._id}
+                        food={food}
+                        onAddToCart={handleAddToCart}
+                        onOpenRestaurant={(partnerId, info) => {
+                          setRestaurantViewId(partnerId)
+                          setSelectedRestaurantInfo(info)
+                          setCurrentView('restaurant')
+                        }}
+                        onEmailOrder={(foodItem) => {
+                          setSelectedFoodForOrder(foodItem)
+                          setModal('order')
+                        }}
+                        isLiked={likedDishes.includes(food._id)}
+                        onToggleLike={(id) => {
+                          setLikedDishes((prev) =>
+                            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+                          )
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <div className="empty-feed-card">
+                      <div className="empty-feed-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🎬</div>
+                      <h3>No Food Reels Available</h3>
+                      <p>Be the first partner to upload short food films &amp; dishes!</p>
+                      {session?.type === 'foodpartner' && (
+                        <button className="primary-btn" onClick={() => setCurrentView('studio')} style={{ marginTop: '12px' }}>
+                          ➕ Upload First Reel
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

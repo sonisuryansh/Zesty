@@ -16,7 +16,7 @@ async function logAuditEvent(req, { action, performedBy, performerModel, role, d
             device: deviceInfo.device || 'Unknown'
         });
     } catch (err) {
-        console.error('Audit Log Error:', err);
+        console.error("❌ Audit log error:", err.message);
     }
 }
 

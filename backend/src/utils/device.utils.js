@@ -23,7 +23,7 @@ function parseDeviceInfo(req) {
             userAgent: source || ''
         };
     } catch (err) {
-        console.error('Error in parseDeviceInfo:', err.message);
+        console.error("❌ Device parsing error:", err.message);
         return {
             browser: 'Unknown',
             os: 'Unknown',

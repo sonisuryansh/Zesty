@@ -1,19 +1,23 @@
-# 🔧 Troubleshooting Guide — Zesty
+# Troubleshooting Guide — Zesty Platform
 
-Common development errors and resolution steps.
+Solutions for common development issues, proxy errors, media upload questions, and MongoDB connection troubleshooting.
 
 ---
 
-## 1. MongoDB Documents Not Appearing in Atlas
-- **Symptom**: Server prints `MongoDB is Connected`, but Atlas Dashboard shows `0` documents.
-- **Cause**: Backend `.env` `MONGO_URI` is pointing to local MongoDB (`mongodb://localhost:27017/zesty`).
-- **Fix**: Update `MONGO_URI` in `backend/.env` with your Atlas `mongodb+srv://...` string and restart `server.js`.
+## 🛠️ Common Issues & Fixes
 
-## 2. Google OAuth Origin Not Allowed (`[GSI_LOGGER]`)
-- **Symptom**: Browser console logs `The given origin is not allowed for the given client ID`.
-- **Fix**: Add `http://localhost:5173` to Authorized JavaScript Origins under your OAuth 2.0 Client ID in Google Cloud Console.
+### 1. `Vite proxy ECONNREFUSED` / `502 Bad Gateway`
+- **Cause**: Node 18+ resolves `localhost` to IPv6 `::1` first on Windows, while Express listens on IPv4 `127.0.0.1:3000`.
+- **Fix**: Verify `frontend/vite.config.js` sets target to `http://127.0.0.1:3000` for both `/api` and `/uploads` routes.
 
-## 3. Cart Merge `409 Conflict`
-- **Symptom**: User receives alert when logging in after adding guest cart items.
-- **Cause**: User's account cart contains items from Restaurant A, while guest cart contains items from Restaurant B. Single-restaurant rule is enforced.
-- **Fix**: User can choose to replace existing cart or keep current cart.
+### 2. Video Upload Mid-Request Server Restart
+- **Cause**: Nodemon watching all files in `backend/` and restarting when new files are saved to `public/uploads/`.
+- **Fix**: Verify `backend/nodemon.json` contains `"ignore": ["public/uploads/*"]`.
+
+### 3. Google OAuth `409 Conflict` (Role Mismatch)
+- **Cause**: User clicked "Sign in with Google" on Customer portal using an account registered as a Restaurant Partner.
+- **Fix**: Switch to the **Restaurant Partner** tab in the login modal and click "Sign in with Google".
+
+### 4. Delete Button Only Removing Item from Memory
+- **Cause**: `handleDeleteFood` not calling backend API.
+- **Fix**: Verify `handleDeleteFood` in `RestaurantDashboard.jsx` executes `safeFetchJson('/api/food/:id', { method: 'DELETE' })`.

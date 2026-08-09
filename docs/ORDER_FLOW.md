@@ -1,16 +1,22 @@
-# 📦 Order & Delivery Lifecycle — Zesty
+# Order Lifecycle Flow — Zesty Platform
 
-Zesty implements an end-to-end order processing lifecycle connecting Customer, Restaurant Partner, and Delivery Rider via Socket.IO real-time events.
+This document details the order placement, state transitions, and real-time socket events across Customer, Restaurant, and Delivery Rider portals.
 
 ---
 
-## 🔄 Order Lifecycle States
+## 🔄 Order State Transitions
 
 ```text
-Placed ──► Accepted ──► Preparing ──► Ready for Pickup ──► Out for Delivery ──► Delivered
+[ Pending ] ──► [ Preparing ] ──► [ Ready for Pick Up ] ──► [ Out for Delivery ] ──► [ Delivered ]
 ```
 
-1. **Order Creation (`Placed`)**: Customer places order via `/api/orders`. Emits `join_order_room`.
-2. **Kitchen Acceptance (`Accepted` & `Preparing`)**: Restaurant Partner accepts order in Partner Studio and marks status.
-3. **Rider Dispatch (`Out for Delivery`)**: Assigned Delivery Rider receives assignment details and navigation coordinates.
-4. **OTP Drop-Off Confirmation (`Delivered`)**: Rider verifies customer OTP upon arrival at delivery location.
+1. **Order Creation (`POST /api/orders`)**:
+   - Customer submits checkout form with address and payment method.
+   - Status initialized to `Pending`.
+   - Financial breakdown calculated automatically.
+2. **Kitchen Processing (`PUT /api/orders/restaurant/:orderId/status`)**:
+   - Restaurant Partner receives order notification in Partner Studio.
+   - Updates status to `Preparing`, then `Ready for Pick Up`.
+3. **Delivery Logistics (`PUT /api/delivery/orders/:orderId/status`)**:
+   - Delivery Rider accepts available delivery task.
+   - Status updated to `Out for Delivery`, then `Delivered`.

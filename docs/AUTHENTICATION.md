@@ -1,29 +1,21 @@
-# 🔒 Authentication & Session Management — Zesty
+# Authentication System — Zesty Platform
 
-Zesty supports a dual authentication framework: Email + Password authentication and Google OAuth 2.0.
-
----
-
-## 🔑 Session Token Architecture
-
-1. **Access Token (`accessToken`)**:
-   - Short-lived JWT containing `{ id, role }`.
-   - Signed with `securityConfig.JWT.ACCESS_SECRET`.
-   - Expiry: 15 minutes.
-   - Stored in HttpOnly cookie `token`.
-
-2. **Refresh Token (`refreshToken`)**:
-   - Long-lived JWT containing `{ id, role }`.
-   - Signed with `securityConfig.JWT.REFRESH_SECRET`.
-   - Expiry: 7 days.
-   - Stored in HttpOnly cookie `refreshToken` and saved in `sessions` collection.
+Zesty features a multi-role authentication system supporting Email/Password, OTP verification, and Google OAuth 2.0.
 
 ---
 
-## 📱 Multi-Device Session & Device Audit
+## 🔑 Authentication Architecture
 
-When a user logs in, `session.service.js` calls `parseDeviceInfo(req)` in `device.utils.js`:
-- Parses `user-agent` header into `browser`, `os`, `device`.
-- Extracts client IP address (`x-forwarded-for` or `socket.remoteAddress`).
-- Creates a new `Session` document storing `refreshToken`, device specs, and `lastActive` timestamp.
-- Audits login events to `auditlogs` collection.
+- **Session Tokens**: Signed JWT tokens stored in HttpOnly, SameSite cookies named `zesty_session`.
+- **Password Hashing**: Passwords hashed using bcryptjs with 10 salt rounds.
+- **Role Isolation**: User accounts are strictly associated with one of four models: `User`, `FoodPartner`, `DeliveryPartner`, or `Admin`.
+
+---
+
+## 🚀 Key Endpoints
+
+- `POST /api/auth/register` — Register a new Customer, Restaurant Partner, or Delivery Rider account.
+- `POST /api/auth/login` — Authenticate existing account with email/password and intended role.
+- `POST /api/auth/google` — Authenticate via Google OAuth credential token with intended role verification.
+- `GET /api/auth/me` — Retrieve active session profile and verified role.
+- `POST /api/auth/logout` — Clear session cookie.

@@ -19,7 +19,7 @@ async function sendSMSOTP(phone, otp) {
 
     // Fallback/Sandbox mode logging when mock key is present
     if (!authKey || authKey.includes('mock')) {
-        console.log(`📱 [MSG91 OTP MOCK DISPATCH] Target Phone: ${phone} | OTP: ${otp}`);
+        console.log("📱 OTP dispatched");
         return { success: true, mode: 'mock', otp };
     }
 
@@ -56,7 +56,7 @@ async function sendSMSOTP(phone, otp) {
         });
 
         req.on('error', (err) => {
-            console.error('MSG91 HTTP Error:', err);
+            console.error("❌ OTP dispatch failed:", err.message);
             resolve({ success: true, mode: 'fallback', err: err.message });
         });
 

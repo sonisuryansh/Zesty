@@ -1,36 +1,29 @@
-# 📐 System & Software Architecture — Zesty
+# Architecture Deep-Dive — Zesty Platform
 
-Zesty is built on a 3-tier monolithic service architecture:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    REACT 19 FRONTEND                        │
-│ ├─ Main App Router (App.jsx)                                │
-│ ├─ View Managers: feed, studio, delivery, admin             │
-│ └─ Socket.IO Realtime Subscriber                            │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ REST API / WebSocket
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  EXPRESS 5 BACKEND API                      │
-│ ├─ App Security Middlewares (Helmet, CORS, NoSQL Sanitizer) │
-│ ├─ Session & Audit Logging Engine                           │
-│ ├─ Domain Controllers (Auth, Food, Cart, Order, Admin)      │
-│ └─ Realtime Socket.IO Server Engine                         │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ Mongoose 9 ODM
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    MONGODB DATABASE                         │
-│ ├─ Collections: users, foodpartners, deliverypartners,      │
-│ │               foods, carts, orders, sessions, auditlogs   │
-└─────────────────────────────────────────────────────────────┘
-```
+This document details the software architecture, system layers, networking, and request processing pipelines of Zesty.
 
 ---
 
-## Key Subsystems
+## 1. System Layers
 
-- **Auth & Session Service**: Signs JWTs, parses device User-Agent attributes, manages HttpOnly cookies, and logs IP & browser audit events.
-- **Cart Engine**: Manages guest carts in `localStorage` and handles backend merging with ObjectId validation and single-restaurant conflict checks (`409 Conflict`).
-- **Realtime Dispatch Engine**: Emits Socket.IO events (`update_live_location`, `order_status_changed`) to update live delivery maps.
+```text
+[ React 19 SPA ] ──(Vite Proxy: /api & /uploads)──► [ Express 5 Server ] ──► [ MongoDB Atlas / ImageKit ]
+```
+
+### Layer Details
+- **Frontend SPA**: Vite + React 19 single-page application using modern hooks, context state, and modal navigation.
+- **Vite Proxy**: Dev proxy forwarding `/api` and `/uploads` to backend `http://127.0.0.1:3000`.
+- **Backend API Engine**: Node.js + Express 5 application with security middleware, JWT authentication, and RESTful controllers.
+- **Database**: MongoDB Atlas cloud cluster storing 15 Mongoose schemas.
+- **Media Engine**: ImageKit Cloud API integration with automatic fallback to local `/public/uploads/` storage.
+
+---
+
+## 2. Request Processing Pipeline
+
+1. **Client Request**: SPA sends request to `/api/...` or `/uploads/...`.
+2. **Vite Proxy**: Forwards request to backend `http://127.0.0.1:3000`.
+3. **Helmet & Security**: Enforces HTTP security headers, CORS origin verification, and HPP parameter protection.
+4. **Cookie & Mongo Sanitizer**: Parses signed session cookie and strips Mongo query operators (`$` / `.`).
+5. **Authentication Middleware**: Decodes JWT token and validates user session.
+6. **Controller Handler**: Executes business logic, performs DB operations, returns JSON.

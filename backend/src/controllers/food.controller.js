@@ -6,37 +6,39 @@ async function createFood(req, res) {
 
      if (!name || !req.file) {
           return res.status(400).json({
-               message: 'Name and video are required'
+               message: 'Name and video/media file are required'
           });
      }
 
      try {
           const uploadedFile = await uploadFile(req.file);
+          const mediaUrl = uploadedFile.url;
+          const isImage = (req.body.mediaType === 'image') || (req.file && req.file.mimetype && req.file.mimetype.startsWith('image'));
+          const mediaType = isImage ? 'image' : 'video';
+
           const food = await foodModel.create({
                name: req.body.name,
-               description: req.body.description,
+               description: req.body.description || '',
                category: req.body.category || 'Trending',
                price: price ? Number(price) : 299,
                isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
-               video: uploadedFile.url,
-               videoFileId: uploadedFile.fileId,
+               mediaType: mediaType,
+               video: mediaUrl,
+               image: mediaUrl,
+               videoFileId: uploadedFile.fileId || `local_${Date.now()}`,
                foodPartner: req.foodPartner._id
           });
 
-          console.log('Food item created:', {
-               id: food._id,
-               name: food.name,
-               videoUrl: food.video
-          });
+          console.log("🍱 Food reel created");
 
           return res.status(201).json({
                message: 'Food item created successfully',
                food
           });
      } catch (error) {
-          console.error('Food upload failed:', error.message);
+          console.error("❌ Food reel creation failed:", error.message);
           return res.status(500).json({
-               message: 'Unable to upload food video'
+               message: error.message || 'Unable to create food item'
           });
      }
 }
@@ -121,16 +123,31 @@ async function deleteFood(req, res) {
                message: 'Food item deleted successfully'
           });
      } catch (error) {
-          console.error('Failed to delete food:', error.message);
+          console.error("❌ Food deletion failed:", error.message);
           return res.status(500).json({
                message: 'Failed to delete food item'
           });
      }
 }
 
+async function getPartnerFoodItems(req, res) {
+     try {
+          const foodItems = await foodModel.find({ foodPartner: req.foodPartner._id })
+               .sort({ createdAt: -1 });
+
+          return res.status(200).json({
+               message: "Partner food items fetched successfully",
+               foodItems
+          });
+     } catch (err) {
+          return res.status(500).json({ message: err.message });
+     }
+}
+
 module.exports = {
      createFood,
      getFoodItems,
+     getPartnerFoodItems,
      getRestaurantReels,
      searchRestaurantFood,
      deleteFood

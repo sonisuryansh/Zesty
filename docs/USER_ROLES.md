@@ -1,40 +1,36 @@
-# 👥 User Roles & Access Control Matrix — Zesty
+# User Roles & RBAC Matrix — Zesty Platform
 
-Zesty implements Role-Based Access Control (RBAC) across four distinct roles:
-
----
-
-## 🎭 Role Definitions
-
-### 1. Customer (`user`)
-- **Access Scope**: Public website, food reels feed, search, cart, checkout, profile, orders.
-- **Model**: `userModel` ([user.model.js](file:///c:/Users/sonis/Desktop/Zesty/backend/src/models/user.model.js))
-- **Auth Endpoint**: `/api/auth/login`, `/api/auth/register`, `/api/auth/google`
-
-### 2. Restaurant Partner (`foodpartner`)
-- **Access Scope**: Partner Studio dashboard, food reel upload, kitchen orders queue, store status toggle, earnings withdrawal.
-- **Model**: `foodPartnerModel` ([foodpartner.model.js](file:///c:/Users/sonis/Desktop/Zesty/backend/src/models/foodpartner.model.js))
-- **Auth Endpoint**: `/api/auth/foodpartner/login`, `/api/auth/foodpartner/register`, `/api/auth/google`
-
-### 3. Delivery Rider (`delivery`)
-- **Access Scope**: Rider Workspace dashboard, active delivery acceptance, delivery route distance, OTP delivery confirmation, rider payout settings.
-- **Model**: `deliveryPartnerModel` ([deliveryPartner.model.js](file:///c:/Users/sonis/Desktop/Zesty/backend/src/models/deliveryPartner.model.js))
-- **Auth Endpoint**: `/api/auth/delivery/login`, `/api/auth/delivery/register`, `/api/auth/google`
-
-### 4. Super Admin (`admin`)
-- **Access Scope**: Isolated path `/admin`, platform metrics, partner verification, user moderation.
-- **Model**: `adminModel` ([admin.model.js](file:///c:/Users/sonis/Desktop/Zesty/backend/src/models/admin.model.js))
-- **Auth Endpoint**: `/api/auth/admin/login` (Google OAuth disabled for admin)
+Zesty enforces Role-Based Access Control (RBAC) to isolate user capabilities and prevent portal cross-access.
 
 ---
 
-## 🔒 Permission Matrix
+## 🎭 Defined User Roles
 
-| Feature / Action | Customer | Restaurant | Rider | Admin |
+1. **Customer (`user`)**:
+   - Capabilities: Browse feed, search dishes, build cart, place orders, save addresses, view order history.
+   - Portal Access: Customer Portal (`/`).
+
+2. **Restaurant Partner (`foodpartner`)**:
+   - Capabilities: Upload food reels/photos, manage menu availability, process incoming kitchen orders, view financial earnings and monthly ledgers.
+   - Portal Access: Partner Studio (`/studio`).
+
+3. **Delivery Rider (`delivery`)**:
+   - Capabilities: Toggle online/offline status, view available order delivery tasks, accept orders, update delivery milestones, view payout earnings.
+   - Portal Access: Rider Workspace (`/delivery`).
+
+4. **Super Admin (`admin`)**:
+   - Capabilities: System audit logs, global settings, platform management.
+   - Portal Access: Admin Control Panel (`/admin`).
+
+---
+
+## 🔒 RBAC Access Matrix
+
+| Feature / Route | Customer (`user`) | Partner (`foodpartner`) | Rider (`delivery`) | Admin (`admin`) |
 | :--- | :---: | :---: | :---: | :---: |
-| Browse Food Reels Feed | ✅ | ✅ | ✅ | ✅ |
+| Browse Food Feed & Reels | ✅ | ❌ | ❌ | ❌ |
+| Create Food / Upload Reel | ❌ | ✅ | ❌ | ❌ |
+| Manage Partner Menu & Delete | ❌ | ✅ | ❌ | ❌ |
 | Add to Cart & Checkout | ✅ | ❌ | ❌ | ❌ |
-| Upload Food Reel & Items | ❌ | ✅ | ❌ | ❌ |
-| Accept & Prepare Orders | ❌ | ✅ | ❌ | ❌ |
-| Pickup & Deliver Orders | ❌ | ❌ | ✅ | ❌ |
-| Access Admin Panel (`/admin`)| ❌ | ❌ | ❌ | ✅ |
+| Accept & Deliver Orders | ❌ | ❌ | ✅ | ❌ |
+| View System Audit Logs | ❌ | ❌ | ❌ | ✅ |

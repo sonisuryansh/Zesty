@@ -56,9 +56,12 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
 app.use(cookieParser(process.env.COOKIE_SECRET || 'zesty_cookie_secret_signed_2026'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Safe In-Place Anti-NoSQL Injection Middleware
 function customMongoSanitize(req, res, next) {
@@ -87,6 +90,10 @@ app.use(hpp());
 
 app.get('/', (req, res) => {
     res.json({ message: "Zesty Multi-Role Enterprise Platform Security API Active" });
+});
+
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: "ok", message: "Zesty Backend API Server Active" });
 });
 
 // API Routes Mount

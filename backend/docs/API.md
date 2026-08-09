@@ -1,58 +1,33 @@
-# 📡 API Endpoint Reference — Zesty Backend
+# Backend API Endpoints Reference — Zesty Backend
 
-Comprehensive specification of all RESTful API endpoints in `src/routes/`.
-
----
-
-## 🔑 Authentication Routes (`/api/auth`)
-
-### 1. Customer Login
-- **Method**: `POST /api/auth/login`
-- **Auth**: Public
-- **Body**: `{ "email": "user@example.com", "password": "password123" }`
-- **Response**: `200 OK` `{ "message": "Login successful", "user": { ... } }`
-
-### 2. Google OAuth Login / Signup
-- **Method**: `POST /api/auth/google`
-- **Auth**: Public
-- **Body**: `{ "idToken": "<google_jwt_credential>", "role": "user" | "foodpartner" | "delivery" }`
-- **Response**: `200 OK` `{ "message": "Google OAuth authentication successful", "user": { ... } }`
-
-### 3. Check Active Session
-- **Method**: `GET /api/auth/me`
-- **Auth**: Authenticated Cookie
-- **Response**: `200 OK` `{ "id": "...", "email": "...", "type": "user" }`
+Comprehensive specification of all RESTful routes implemented in `src/routes/`.
 
 ---
 
-## 🛒 Cart Routes (`/api/cart`)
+## 📌 Endpoint Specifications
 
-### 1. Get Cart
-- **Method**: `GET /api/cart`
-- **Auth**: Required (`user`)
-- **Response**: `200 OK` `{ "cart": { "items": [...], "subtotal": 299 } }`
+### Auth Routes (`src/routes/auth.routes.js`)
+- `POST /api/auth/register` — Body: `{ name, email, password, phone, role }` -> `201 Created`
+- `POST /api/auth/login` — Body: `{ email, password, role }` -> `200 OK`
+- `POST /api/auth/google` — Body: `{ credential, role }` -> `200 OK` or `409 Conflict`
+- `GET /api/auth/me` — Headers/Cookie: Signed session -> `200 OK` (User profile)
+- `POST /api/auth/logout` — Clears `zesty_session` cookie -> `200 OK`
 
-### 2. Merge Guest Cart
-- **Method**: `POST /api/cart/merge`
-- **Auth**: Required (`user`)
-- **Body**: `{ "items": [{ "foodId": "65...", "quantity": 1 }], "clearAndAdd": false }`
-- **Response**: `200 OK` / `409 Conflict` (if restaurant mismatch)
+### Food Routes (`src/routes/food.routes.js`)
+- `POST /api/food` — Multipart Form: `{ name, price, category, video }` (Protected: `foodpartner`) -> `201 Created`
+- `GET /api/food` — Public available food items feed -> `200 OK`
+- `GET /api/food/my-items` — Partner published food items (Protected: `foodpartner`) -> `200 OK`
+- `DELETE /api/food/:id` — Deletes food document from MongoDB (Protected: `foodpartner`) -> `200 OK`
 
----
+### Restaurant Routes (`src/routes/restaurant.routes.js`)
+- `GET /api/restaurants` — Public list of all restaurants -> `200 OK`
+- `GET /api/restaurants/:id` — Restaurant details -> `200 OK`
+- `PUT /api/restaurants/status` — Body: `{ isOnline }` (Protected: `foodpartner`) -> `200 OK`
+- `GET /api/restaurants/dashboard/stats` — Partner dashboard metrics -> `200 OK`
+- `GET /api/restaurants/financials` — Query: `month=YYYY-MM` (Protected: `foodpartner`) -> `200 OK`
 
-## 📦 Order Routes (`/api/orders`)
-
-### 1. Create Order
-- **Method**: `POST /api/orders`
-- **Auth**: Required (`user`)
-- **Body**: `{ "deliveryAddress": { ... }, "paymentMethod": "COD" }`
-- **Response**: `201 Created` `{ "message": "Order placed successfully", "order": { ... } }`
-
----
-
-## 🛡️ Admin Routes (`/api/admin`)
-
-### 1. Admin Platform Stats
-- **Method**: `GET /api/admin/dashboard-stats`
-- **Auth**: Super Admin (`authAdminMiddleware`)
-- **Response**: `200 OK` `{ "stats": { "totalUsers": 12, "totalRevenue": 48500 } }`
+### Order Routes (`src/routes/order.routes.js`)
+- `POST /api/orders` — Body: `{ items, deliveryAddress, paymentMethod }` -> `201 Created`
+- `GET /api/orders/my-orders` — Customer order history -> `200 OK`
+- `GET /api/orders/restaurant/incoming` — Kitchen incoming orders -> `200 OK`
+- `PUT /api/orders/restaurant/:orderId/status` — Body: `{ status }` -> `200 OK`

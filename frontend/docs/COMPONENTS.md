@@ -1,16 +1,18 @@
-# 🧩 Frontend Components Inventory — Zesty
+# Component Library Specifications — Zesty Frontend
 
-Comprehensive overview of all React components in `src/components/`.
+Index of React 19 UI components in `frontend/src/components/`.
 
 ---
 
-## Component Registry
+## 🧩 Component Index
 
-1. **`ReelCard.jsx`**: Renders short food video reels with video player controls, dish title, price, likes, comments, and add-to-cart actions.
-2. **`RestaurantDashboard.jsx`**: Partner Studio dashboard featuring kitchen orders queue, 1-click online/offline store status, food reel upload form, and earnings analytics.
-3. **`DeliveryDashboard.jsx`**: Rider Workspace dashboard displaying active order assignments, pickup coordinates, distance to kitchen, duty status toggle, and delivery OTP confirmation.
-4. **`SocialUserProfile.jsx`**: Instagram-style user profile displaying user avatar, order history timeline, and saved addresses.
-5. **`LocationModal.jsx`**: GPS address selection modal with interactive landmark inputs and address tags (Home, Work, Other).
-6. **`CartConflictModal.jsx`**: Single-restaurant conflict prompt displayed when adding items from a new kitchen.
-7. **`AdminControlPanel.jsx`**: Isolated Super Admin console mounted at `/admin`.
-8. **`OrderStatusTracker.jsx`**: Live order status timeline with Socket.IO subscriber.
+1. **`ReelCard.jsx`**: Renders full-screen video reels/photo posts with autoplay, play/pause controls, like button, dish details, and "Add to Cart" CTA.
+2. **`RestaurantDashboard.jsx`**: Partner Studio interface with Published Food Items grid, upload reel form, kitchen order queue, payout settings, and financial analytics ledger.
+3. **`DeliveryDashboard.jsx`**: Rider Workspace with online toggle, incoming delivery requests, active order tracking, and earnings summary.
+4. **`AdminControlPanel.jsx`**: Platform audit log viewer, settings management, and user governance.
+5. **`LocationModal.jsx`**: Reverse-geocoding delivery location selector with OpenStreetMap API integration.
+6. **`CartConflictModal.jsx`**: Single-restaurant cart guard dialog prompting users when adding items from a different restaurant.
+7. **`OrderStatusTracker.jsx`**: Real-time order status progress bar (`Pending` -> `Delivered`).
+8. **`FooterPageModal.jsx`**: Informational footer pages modal (About Us, Press, Jobs, Terms, Privacy).
+9. **`SocialUserProfile.jsx`**: Public user social profile view.
+10. **`EditProfileModal.jsx`**: Customer profile settings modal.

@@ -56,7 +56,7 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
     fetchOrders()
     fetchFoodItems()
     fetchFinancials(selectedMonth)
-  }, [])
+  }, [session])
 
   const fetchDashboardData = async () => {
     const { ok, data } = await safeFetchJson('/api/restaurants/dashboard/stats')
@@ -76,10 +76,17 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
   }
 
   const fetchFoodItems = async () => {
-    const { ok, data } = await safeFetchJson('/api/food')
+    const { ok, data } = await safeFetchJson('/api/food/my-items')
     if (ok && data?.foodItems) {
-      const partnerId = session?.profile?._id || session?.id
-      setFoodItems(data.foodItems.filter(f => (f.foodPartner?._id || f.foodPartner) === partnerId))
+      setFoodItems(data.foodItems)
+    } else {
+      const { ok: okAll, data: dataAll } = await safeFetchJson('/api/food')
+      if (okAll && dataAll?.foodItems) {
+        const partnerId = session?.profile?._id || session?.id
+        if (partnerId) {
+          setFoodItems(dataAll.foodItems.filter(f => (f.foodPartner?._id || f.foodPartner) === partnerId))
+        }
+      }
     }
   }
 
@@ -174,9 +181,23 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
   }
 
   const handleDeleteFood = async (id) => {
-    if (!window.confirm('Delete this food item and reel?')) return
-    setFoodItems(foodItems.filter(f => f._id !== id))
-    showToast('Item deleted.', 'info')
+    if (!window.confirm('Delete this food item and reel permanently?')) return
+
+    try {
+      const { ok, data } = await safeFetchJson(`/api/food/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (ok) {
+        setFoodItems(prev => prev.filter(f => f._id !== id))
+        showToast('Food item and reel deleted permanently! 🗑️', 'info')
+        fetchDashboardData()
+      } else {
+        showToast(data?.message || 'Failed to delete item from server.', 'error')
+      }
+    } catch (err) {
+      showToast('Error deleting food item.', 'error')
+    }
   }
 
   if (session?.type !== 'foodpartner') {
@@ -477,17 +498,26 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
         <div className="dash-tab-content">
           <h3>Published Food Items</h3>
           <div className="studio-grid">
-            {foodItems.map((food) => (
-              <div key={food._id} className="studio-item-card">
-                <video src={food.video} className="studio-thumb" muted loop autoPlay playsInline />
-                <h4>{food.name}</h4>
-                <p>Price: <strong>₹{food.price || 299}</strong></p>
-                <p>Category: {food.category}</p>
-                <button className="delete-btn" onClick={() => handleDeleteFood(food._id)}>
-                  <IconDelete /> Delete Item & Reel
-                </button>
-              </div>
-            ))}
+            {foodItems.map((food) => {
+              const isImage = food.mediaType === 'image' || (!food.video && food.image) || (food.video && food.video.startsWith('data:image'));
+              const mediaSrc = food.video || food.image;
+
+              return (
+                <div key={food._id} className="studio-item-card">
+                  {isImage ? (
+                    <img src={mediaSrc} alt={food.name} className="studio-thumb" />
+                  ) : (
+                    <video src={mediaSrc} className="studio-thumb" muted loop autoPlay playsInline preload="metadata" />
+                  )}
+                  <h4>{food.name}</h4>
+                  <p>Price: <strong>₹{food.price || 299}</strong></p>
+                  <p>Category: {food.category || 'Trending'}</p>
+                  <button className="delete-btn" onClick={() => handleDeleteFood(food._id)}>
+                    <IconDelete /> Delete Item & Reel
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

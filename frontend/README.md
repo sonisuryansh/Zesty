@@ -1,42 +1,41 @@
-# ⚛️ Zesty Frontend — React 19 + Vite 8 Application
+# Frontend Documentation — Zesty Application
 
-The frontend tier of Zesty is a single-page application built with React 19, Vite 8, and Vanilla CSS design tokens.
-
----
-
-## 🚀 Quick Start
-
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-```
-
-Visit `http://localhost:5173`.
+The Zesty frontend is a video-first food discovery Single Page Application (SPA) built using **React 19**, **Vite**, and **Vanilla CSS**.
 
 ---
 
-## 📦 Key Libraries & Dependencies
+## 🚀 Overview & Capabilities
 
-- `react` & `react-dom`: v19.0.0
-- `vite`: v8.1.5
-- `@react-oauth/google`: Google OAuth 2.0 Identity Services wrapper
-- `@emailjs/browser`: Client-side direct email dispatch SDK
-- `socket.io-client`: Real-time WebSocket event subscriber
-
----
-
-## 🏛️ Component Architecture
-
-- **`App.jsx`**: Main routing, layout canvas, navigation bar, modal manager, and state hub.
-- **`App.css`**: Design system tokens, glassmorphism UI rules, dark/light themes, animations.
-- **`components/`**: Modular component views (`ReelCard`, `RestaurantDashboard`, `DeliveryDashboard`, `SocialUserProfile`, `LocationModal`, `CartConflictModal`, `AdminControlPanel`).
+- **Instagram-Style Reels Feed**: Vertical scrollable food feed with video autoplay (`ReelCard.jsx`).
+- **Partner Studio Dashboard**: Food item creation, image/video reel uploads, menu availability management, delete operations, and monthly financial ledger (`RestaurantDashboard.jsx`).
+- **Rider Workspace**: Active delivery job management, pickup/dropoff map links, order status updates (`DeliveryDashboard.jsx`).
+- **Customer Portal**: Guest cart, single-restaurant cart conflict protection, address management, and checkout (`App.jsx`).
 
 ---
 
-## ⚡ Request Lifecycle Flow
+## 📁 Directory Structure
 
 ```text
-User Action ──► Event Handler ──► Local Component / App State ──► fetch() API Helper ──► Backend API ──► UI Re-render
+frontend/
+├── vite.config.js      # Vite dev server and proxy configuration (/api, /uploads)
+├── index.html          # HTML5 entry template
+├── src/
+│   ├── main.jsx        # React root entry point
+│   ├── App.jsx         # Main application container & view router
+│   ├── App.css         # Global CSS design system & component styles
+│   └── components/     # Modals, cards, feeds, dashboards
+└── docs/               # Frontend specifications & guides
 ```
+
+---
+
+## 📖 Frontend Documentation Index
+
+- 📖 **[Architecture & Setup](docs/ARCHITECTURE.md)**
+- 📖 **[Component Library Index](docs/COMPONENTS.md)**
+- 📖 **[View Routing Engine](docs/ROUTING.md)**
+- 📖 **[State Management Strategy](docs/STATE_MANAGEMENT.md)**
+- 📖 **[Authentication & RBAC UI](docs/AUTH_FLOW.md)**
+- 📖 **[API Integration & Fetch Layer](docs/API_INTEGRATION.md)**
+- 📖 **[Google OAuth Integration](docs/GOOGLE_OAUTH.md)**
+- 📖 **[Setup & Development Guide](docs/SETUP.md)**

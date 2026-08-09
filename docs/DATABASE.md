@@ -1,38 +1,57 @@
-# 🗄️ Database Schemas & Entity Relationships — Zesty
+# Database Schema & Mongoose Models — Zesty Platform
 
-Zesty uses MongoDB with Mongoose 9 ODM. Below is the Entity-Relationship structure.
+Zesty utilizes MongoDB Atlas as its cloud database provider, configured via Mongoose ORM models.
 
 ---
 
-## 📊 Entity Relationship Diagram (Mermaid)
+## 📊 Entity Relationship Specs
 
 ```mermaid
 erDiagram
-    USER ||--o{ ORDER : places
-    USER ||--o{ CART : owns
-    USER ||--o{ ADDRESS : saves
-    USER ||--o{ SESSION : maintains
-    
-    FOODPARTNER ||--o{ FOOD : publishes
-    FOODPARTNER ||--o{ ORDER : receives
-    FOODPARTNER ||--o{ CART : contains_items_from
-    
-    DELIVERYPARTNER ||--o{ ORDER : delivers
-    
-    ORDER ||--|{ FOOD : contains
+    FoodPartner ||--o{ Food : publishes
+    FoodPartner ||--o{ Order : receives
+    User ||--o{ Order : places
+    User ||--o1 Cart : owns
+    User ||--o{ Address : saves
+    DeliveryPartner ||--o{ Order : delivers
+    Food ||--o{ CartItem : contains
 ```
 
 ---
 
-## 📑 Collections & Models Overview
+## 🗄️ Core Mongoose Schemas
 
-1. `users` (`userModel`)
-2. `foodpartners` (`foodPartnerModel`)
-3. `deliverypartners` (`deliveryPartnerModel`)
-4. `admins` (`adminModel`)
-5. `foods` (`foodModel`)
-6. `carts` (`cartModel`)
-7. `orders` (`orderModel`)
-8. `addresses` (`addressModel`)
-9. `sessions` (`sessionModel`)
-10. `auditlogs` (`auditLogModel`)
+### 1. `User` Schema (`users`)
+- `name` (String, required)
+- `email` (String, required, unique)
+- `password` (String, select: false)
+- `googleId` (String)
+- `phone` (String)
+
+### 2. `FoodPartner` Schema (`foodpartners`)
+- `name` (String, required)
+- `email` (String, required, unique)
+- `password` (String, select: false)
+- `isOnline` (Boolean, default: true)
+- `rating` (Number, default: 4.8)
+- `location` ({ latitude: Number, longitude: Number, addressName: String })
+
+### 3. `Food` Schema (`foods`)
+- `name` (String, required)
+- `description` (String)
+- `price` (Number, required)
+- `category` (String, default: 'Trending')
+- `mediaType` (String, enum: ['video', 'image'], default: 'video')
+- `video` (String, required)
+- `image` (String)
+- `foodPartner` (ObjectId -> FoodPartner, required)
+- `isAvailable` (Boolean, default: true)
+
+### 4. `Order` Schema (`orders`)
+- `customer` (ObjectId -> User, required)
+- `foodPartner` (ObjectId -> FoodPartner, required)
+- `deliveryPartner` (ObjectId -> DeliveryPartner)
+- `items` (Array of { food: ObjectId -> Food, name: String, quantity: Number, price: Number })
+- `status` (String, enum: ['Pending', 'Preparing', 'Ready for Pick Up', 'Out for Delivery', 'Delivered', 'Cancelled'])
+- `pricing` ({ subtotal: Number, packagingCharge: Number, gstTax: Number, deliveryFee: Number, grandTotal: Number })
+- `financialBreakdown` ({ platformCommission: Number, restaurantEarnings: Number, deliveryFeePayout: Number })

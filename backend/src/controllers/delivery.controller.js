@@ -57,7 +57,7 @@ async function assignNearestDeliveryPartner(order) {
             return nearestRider;
         }
     } catch (err) {
-        console.error('Auto delivery assignment error:', err.message);
+        console.error("❌ Delivery assignment error:", err.message);
     }
     return null;
 }

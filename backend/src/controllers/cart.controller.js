@@ -226,7 +226,7 @@ async function mergeGuestCart(req, res) {
 
         return res.status(200).json({ message: "Guest cart merged successfully", cart: populatedCart });
     } catch (err) {
-        console.error("[CartMerge Error]:", err.stack || err.message);
+        console.error("❌ Cart merge failed:", err.message);
         return res.status(400).json({ message: err.message || "Failed to merge guest cart" });
     }
 }

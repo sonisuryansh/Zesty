@@ -1,41 +1,26 @@
-# 🌐 Google OAuth 2.0 Integration — Zesty
+# Google OAuth 2.0 Integration — Zesty Platform
 
-Zesty implements Google OAuth 2.0 authentication for Customers, Restaurant Partners, and Delivery Riders while enforcing role isolation and account linking by verified email address.
+Zesty implements secure Google OAuth 2.0 sign-in with portal role isolation.
 
 ---
 
-## 🔁 Flow Overview
+## 🔄 Execution Sequence
 
 ```text
-User selects portal tab (Customer / Restaurant / Delivery Rider)
-                       │
-                       ▼
-Click "Continue with Google" (<GoogleLogin />)
-                       │
-                       ▼
-Google OAuth Pop-up & User Verification
-                       │
-                       ▼
-Frontend receives ID Token (credential)
-                       │
-                       ▼
-POST /api/auth/google { idToken, role: "user" | "foodpartner" | "delivery" }
-                       │
-                       ▼
-Backend verifies idToken via googleClient.verifyIdToken()
-                       │
-                       ▼
-Backend checks for cross-role mismatch across all models
- ├── If email registered under DIFFERENT role -> Return 409 Conflict
- └── If role matches or new user -> Link googleId & create session
-                       │
-                       ▼
-Issue HttpOnly JWT session cookies & return user profile
+1. User selects Portal Tab (Customer / Partner / Rider)
+2. User clicks "Sign in with Google"
+3. Google SDK returns ID Credential Token
+4. Frontend sends token + intended role to POST /api/auth/google
+5. Backend verifies token with Google OAuth Client
+6. Backend checks existing account across User, FoodPartner, and DeliveryPartner collections
+7. CASE A: Account exists in matching role -> Logged in successfully
+8. CASE B: Account exists in DIFFERENT role -> Returns HTTP 409 Conflict with tab switch guidance
+9. CASE C: New user -> Creates account in selected role -> Logged in successfully
 ```
 
 ---
 
-## 🛡️ Role Isolation & Mismatch Rules
+## 🛠️ Configuration Requirements
 
-- **Role Mismatch Safeguard**: If a Google account is registered as a Customer, attempting to sign in on the Delivery Rider tab returns `409 Conflict` with message `"This Google account is registered as a Customer. Switch to the Customer Login tab."`.
-- **Super Admin Protection**: Requests with `role: "admin"` are rejected with `403 Forbidden`.
+- `VITE_GOOGLE_CLIENT_ID` in `frontend/.env` and `backend/.env`.
+- Authorized JavaScript origins in Google Cloud Console: `http://localhost:5173` and `http://localhost:3000`.

@@ -1,21 +1,21 @@
-# 💰 Payment, Platform Commission & Payout Logic — Zesty
+# Payment & Commission Financial Ledger — Zesty Platform
 
-Zesty features a transparent fee breakdown and a low 5% platform commission structure.
-
----
-
-## 🧮 Pricing & Bill Breakdown Formula
-
-$$\text{Grand Total} = \text{Food Subtotal} + \text{Packaging Charge (₹20)} + \text{GST Tax (5\%)} + \text{Delivery Fee (₹40)}$$
-
-- **Food Subtotal**: Sum of item price $\times$ quantity.
-- **Packaging Charge**: ₹20 fixed fee when cart contains items.
-- **GST Tax**: 5% calculated on (Subtotal + Packaging Charge).
-- **Delivery Fee**: ₹40 fixed delivery charge.
+Zesty calculates transparent pricing, platform commissions, and payout earnings for every completed food order.
 
 ---
 
-## 💸 Commission & Revenue Distribution
+## 💰 Financial Breakdown Math
 
-- **Restaurant Partner Net Income**: 95% of Food Subtotal retained by restaurant. (5% platform fee retained by Zesty).
-- **Delivery Rider Earnings**: 5% delivery commission per completed order available for UPI withdrawal requests in Rider Workspace.
+Given a cart with food item total $F$:
+
+$$\text{Food Subtotal} = F$$
+$$\text{Packaging Charge} = \text{₹20}$$
+$$\text{Taxable Amount} = F + 20$$
+$$\text{GST Tax (5\%)} = \text{Math.round}(\text{Taxable Amount} \times 0.05)$$
+$$\text{Delivery Fee} = \text{₹40}$$
+$$\text{Grand Total} = F + 20 + \text{GST Tax} + 40$$
+
+### Earnings & Commission Breakdown
+- **Platform Commission (5%)**: $0.05 \times F$
+- **Net Restaurant Earnings**: $F - \text{Platform Commission} + \text{Packaging Charge}$
+- **Rider Delivery Payout**: $\text{Delivery Fee} = \text{₹40}$

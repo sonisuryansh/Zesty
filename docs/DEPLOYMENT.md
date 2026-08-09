@@ -1,21 +1,21 @@
-# 🚀 Deployment Guide — Zesty
+# Deployment & Production Architecture Guide — Zesty Platform
 
-Zesty can be deployed to production using Node.js hosting environments (e.g. Render, Railway, AWS EC2, Vercel).
+Guide for building and deploying Zesty to production environments (Vercel / Netlify for Frontend, Render / AWS EC2 for Backend, MongoDB Atlas for Database).
 
 ---
 
-## 🛠️ Production Build Steps
+## 🚀 Build Instructions
 
-### Frontend Build
-```bash
-cd frontend
-npm run build
-```
-Generates production static bundle in `frontend/dist/`.
+1. **Frontend Production Build**:
+   ```bash
+   cd frontend
+   npm run build
+   ```
+   Outputs static production bundle to `frontend/dist/`.
 
-### Backend Production Server
-```bash
-cd backend
-NODE_ENV=production node server.js
-```
-Ensure `CLIENT_URL` in `backend/.env` is updated to production domain for CORS security.
+2. **Backend Production Execution**:
+   ```bash
+   cd backend
+   npm start
+   ```
+   Runs Node.js server via `node server.js`.

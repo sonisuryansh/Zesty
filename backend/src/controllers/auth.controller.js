@@ -118,6 +118,7 @@ async function loginUser(req, res) {
 
     await resetFailedLogin(user);
     await createSession(req, res, user, 'User', 'user');
+    console.log("🔐 User logged in");
 
     await logAuditEvent(req, {
         action: 'LOGIN',
@@ -144,6 +145,7 @@ async function logoutUser(req, res) {
         await Session.updateOne({ refreshToken }, { isValid: false });
     }
     await clearAuthCookies(res);
+    console.log("👋 User logged out");
     res.status(200).json({ message: "User logged out successfully" });
 }
 
@@ -471,9 +473,7 @@ async function loginGoogle(req, res) {
                 account.isEmailVerified = true;
                 if (picture && !account.profilePicture) account.profilePicture = picture;
                 await account.save();
-                console.log(`[GoogleOAuth DB Write] Updated DeliveryPartner account ID: ${account._id}`);
             } else {
-                console.log(`[GoogleOAuth DB Write] Creating new DeliveryPartner for email: ${email}`);
                 account = await deliveryPartnerModel.create({
                     name: name || email.split('@')[0],
                     email: email,
@@ -483,7 +483,6 @@ async function loginGoogle(req, res) {
                     approvalStatus: 'approved',
                     dutyStatus: 'offline'
                 });
-                console.log(`[GoogleOAuth DB Write] Created new DeliveryPartner account ID: ${account._id}`);
             }
         } else if (targetRole === 'foodpartner') {
             modelType = 'FoodPartner';
@@ -493,9 +492,7 @@ async function loginGoogle(req, res) {
                 account.isEmailVerified = true;
                 if (picture && !account.avatar) account.avatar = picture;
                 await account.save();
-                console.log(`[GoogleOAuth DB Write] Updated FoodPartner account ID: ${account._id}`);
             } else {
-                console.log(`[GoogleOAuth DB Write] Creating new FoodPartner for email: ${email}`);
                 account = await foodPartnerModel.create({
                     name: name || email.split('@')[0],
                     email: email,
@@ -505,7 +502,6 @@ async function loginGoogle(req, res) {
                     approvalStatus: 'approved',
                     isOnline: true
                 });
-                console.log(`[GoogleOAuth DB Write] Created new FoodPartner account ID: ${account._id}`);
             }
         } else {
             modelType = 'User';
@@ -518,9 +514,7 @@ async function loginGoogle(req, res) {
                     account.avatar = picture;
                 }
                 await account.save();
-                console.log(`[GoogleOAuth DB Write] Updated User account ID: ${account._id}`);
             } else {
-                console.log(`[GoogleOAuth DB Write] Creating new User for email: ${email}`);
                 account = await userModel.create({
                     fullName: name || email.split('@')[0],
                     name: name || email.split('@')[0],
@@ -530,7 +524,6 @@ async function loginGoogle(req, res) {
                     avatar: picture || '',
                     isEmailVerified: true
                 });
-                console.log(`[GoogleOAuth DB Write] Created new User account ID: ${account._id}`);
             }
         }
 
@@ -548,6 +541,8 @@ async function loginGoogle(req, res) {
             details: { method: 'Google OAuth' }
         });
 
+        console.log("🔑 Google authentication successful");
+
         return res.status(200).json({
             message: "Google OAuth authentication successful",
             user: {
@@ -560,7 +555,7 @@ async function loginGoogle(req, res) {
             profile: account
         });
     } catch (err) {
-        console.error('Google OAuth Error:', err.stack || err.message);
+        console.error("❌ Google authentication failed:", err.message);
         return res.status(400).json({ message: err.message || "Google OAuth verification failed" });
     }
 }

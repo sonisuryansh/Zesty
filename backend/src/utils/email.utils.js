@@ -7,8 +7,7 @@ async function sendEmail({ to, subject, html, text }) {
     const pass = process.env.EMAIL_PASS;
 
     if (!user || user.includes('mock') || !pass || pass.includes('mock')) {
-        console.log(`📧 [EMAIL MOCK DISPATCH] To: ${to} | Subject: ${subject}`);
-        console.log(`Content:\n${text || html}`);
+        console.log("📧 Email dispatched");
         return { success: true, mode: 'mock' };
     }
 
@@ -28,10 +27,10 @@ async function sendEmail({ to, subject, html, text }) {
             html
         });
 
+        console.log("📧 Email dispatched");
         return { success: true, messageId: info.messageId };
     } catch (err) {
-        console.error('Nodemailer error:', err);
-        console.log(`📧 [EMAIL MOCK FALLBACK] To: ${to} | Subject: ${subject}`);
+        console.error("❌ Email dispatch failed:", err.message);
         return { success: true, mode: 'fallback', error: err.message };
     }
 }

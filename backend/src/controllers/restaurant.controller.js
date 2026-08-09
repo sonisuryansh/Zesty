@@ -137,10 +137,10 @@ async function getRestaurantFinancials(req, res) {
                 $group: {
                     _id: null,
                     totalCompletedOrders: { $sum: 1 },
-                    grossFoodSales: { $sum: { $ifNull: ['$financialBreakdown.foodSubtotal', '$pricing.subtotal'] } },
+                    grossFoodSales: { $sum: { $ifNull: ['$financialBreakdown.foodSubtotal', { $ifNull: ['$pricing.subtotal', 0] }] } },
                     packagingIncome: { $sum: { $ifNull: ['$financialBreakdown.packagingCharge', 20] } },
-                    platformCommission: { $sum: { $ifNull: ['$financialBreakdown.platformCommission', { $multiply: ['$pricing.subtotal', 0.05] }] } },
-                    netRestaurantIncome: { $sum: { $ifNull: ['$financialBreakdown.restaurantEarnings', '$pricing.grandTotal'] } }
+                    platformCommission: { $sum: { $ifNull: ['$financialBreakdown.platformCommission', { $multiply: [{ $ifNull: ['$pricing.subtotal', 0] }, 0.05] }] } },
+                    netRestaurantIncome: { $sum: { $ifNull: ['$financialBreakdown.restaurantEarnings', { $ifNull: ['$pricing.grandTotal', 0] }] } }
                 }
             }
         ]);
@@ -160,9 +160,9 @@ async function getRestaurantFinancials(req, res) {
                 $group: {
                     _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
                     ordersCount: { $sum: 1 },
-                    grossFoodSales: { $sum: { $ifNull: ['$financialBreakdown.foodSubtotal', '$pricing.subtotal'] } },
-                    platformCommission: { $sum: { $ifNull: ['$financialBreakdown.platformCommission', { $multiply: ['$pricing.subtotal', 0.05] }] } },
-                    netIncome: { $sum: { $ifNull: ['$financialBreakdown.restaurantEarnings', '$pricing.grandTotal'] } }
+                    grossFoodSales: { $sum: { $ifNull: ['$financialBreakdown.foodSubtotal', { $ifNull: ['$pricing.subtotal', 0] }] } },
+                    platformCommission: { $sum: { $ifNull: ['$financialBreakdown.platformCommission', { $multiply: [{ $ifNull: ['$pricing.subtotal', 0] }, 0.05] }] } },
+                    netIncome: { $sum: { $ifNull: ['$financialBreakdown.restaurantEarnings', { $ifNull: ['$pricing.grandTotal', 0] }] } }
                 }
             },
             { $sort: { _id: -1 } }

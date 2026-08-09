@@ -18,6 +18,12 @@ router.post('/',
 // GET /api/food [public for reel discovery]
 router.get('/', foodController.getFoodItems);
 
+// GET /api/food/my-items [protected: Food Partner]
+router.get('/my-items',
+    authMiddleware.authFoodPartnerMiddleware,
+    foodController.getPartnerFoodItems
+);
+
 // GET /api/food/restaurant/:restaurantId [restaurant-specific reels]
 router.get('/restaurant/:restaurantId', foodController.getRestaurantReels);
 

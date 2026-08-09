@@ -1,24 +1,27 @@
-# ⚙️ Environment Setup Guide — Zesty
+# Environment Setup Reference — Zesty Platform
 
-Detailed breakdown of all `.env` files across `frontend` and `backend`.
+Reference guide for environment variables required across backend and frontend services.
 
 ---
 
-## Backend `.env` Template
-```env
-PORT=3000
-MONGO_URI=mongodb://localhost:27017/zesty
-JWT_SECRET=your_jwt_secret_key
-REFRESH_TOKEN_SECRET=your_refresh_token_secret
-COOKIE_SECRET=your_cookie_secret
-CLIENT_URL=http://localhost:5173
-GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-```
+## 🔑 Backend Variables (`backend/.env`)
 
-## Frontend `.env` Template
-```env
-VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-VITE_EMAILJS_SERVICE_ID=your_emailjs_service_id
-VITE_EMAILJS_TEMPLATE_ID=your_emailjs_template_id
-VITE_EMAILJS_PUBLIC_KEY=your_emailjs_public_key
-```
+| Variable Name | Required | Purpose | Example |
+| :--- | :---: | :--- | :--- |
+| `PORT` | Yes | HTTP server listening port | `3000` |
+| `MONGODB_URI` | Yes | MongoDB Atlas connection string | `mongodb+srv://...` |
+| `JWT_SECRET` | Yes | Secret key for signing JWT tokens | `zesty_jwt_secret_key` |
+| `COOKIE_SECRET` | Yes | Secret key for signing cookies | `zesty_cookie_secret` |
+| `VITE_GOOGLE_CLIENT_ID` | Yes | Google OAuth 2.0 Client ID | `xxx.apps.googleusercontent.com` |
+| `IMAGEKIT_PRIVATE_KEY` | Optional | ImageKit Cloud API Private Key | `private_xxxxxx` |
+| `IMAGEKIT_PUBLIC_KEY` | Optional | ImageKit Cloud API Public Key | `public_xxxxxx` |
+| `IMAGEKIT_URL_ENDPOINT` | Optional | ImageKit Cloud CDN URL Endpoint | `https://ik.imagekit.io/xxxx` |
+
+---
+
+## 🎨 Frontend Variables (`frontend/.env`)
+
+| Variable Name | Required | Purpose | Example |
+| :--- | :---: | :--- | :--- |
+| `VITE_GOOGLE_CLIENT_ID` | Yes | Google OAuth 2.0 Client ID | `xxx.apps.googleusercontent.com` |
+| `VITE_API_URL` | Yes | Relative API base URL | `/api` |

@@ -42,12 +42,9 @@ io.use((socket, next) => {
 
 // Socket.IO Connection & Events
 io.on('connection', (socket) => {
-    console.log(`⚡ Socket connected [${socket.id}] | Authenticated: ${socket.user?.authenticated} | Role: ${socket.user?.role || 'guest'}`);
-
     // Join order room for live tracking
     socket.on('join_order_room', (orderId) => {
         socket.join(`order_${orderId}`);
-        console.log(`Socket ${socket.id} joined order room: order_${orderId}`);
     });
 
     // Delivery Partner Live GPS location stream
@@ -70,16 +67,12 @@ io.on('connection', (socket) => {
             updatedAt: new Date()
         });
     });
-
-    socket.on('disconnect', () => {
-        console.log('⚡ Socket client disconnected:', socket.id);
-    });
 });
 
 const PORT = process.env.PORT || 3000;
 
 connectDB().then(() => {
     server.listen(PORT, () => {
-        console.log(`🚀 Zesty Multi-Role Enterprise Server running on port ${PORT}`);
+        console.log(`🚀 Zesty Enterprise Server running on port ${PORT}`);
     });
 });

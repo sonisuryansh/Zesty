@@ -114,7 +114,7 @@ async function updateUserProfile(req, res) {
         const updatedUser = await userModel.findByIdAndUpdate(
             userId,
             { $set: updates },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         ).select('-password -failedLoginAttempts -knownDevices');
 
         res.status(200).json({

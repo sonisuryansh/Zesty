@@ -45,7 +45,7 @@ async function toggleOnlineStatus(req, res) {
         const partner = await foodPartnerModel.findByIdAndUpdate(
             req.foodPartner._id,
             { isOnline: Boolean(isOnline) },
-            { new: true }
+            { returnDocument: 'after' }
         ).select('-password');
 
         res.status(200).json({
@@ -98,7 +98,7 @@ async function updatePackagingCharge(req, res) {
         const partner = await foodPartnerModel.findByIdAndUpdate(
             req.foodPartner._id,
             { packagingCharge: Number(packagingCharge) },
-            { new: true }
+            { returnDocument: 'after' }
         ).select('-password');
 
         res.status(200).json({ message: "Packaging charge updated successfully", partner });

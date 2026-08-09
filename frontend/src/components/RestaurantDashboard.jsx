@@ -39,7 +39,12 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
 
   const safeFetchJson = async (url, options = {}) => {
     try {
-      const res = await fetch(url, { credentials: 'include', ...options })
+      const token = localStorage.getItem('zesty_token')
+      const headers = { ...options.headers }
+      if (token && token !== 'null' && token !== 'undefined') {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const res = await fetch(url, { credentials: 'include', ...options, headers })
       const contentType = res.headers.get('content-type')
       if (contentType && contentType.includes('application/json')) {
         const data = await res.json()
@@ -50,6 +55,7 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
       return { ok: false, data: null }
     }
   }
+
 
   useEffect(() => {
     fetchDashboardData()
@@ -505,7 +511,7 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
               return (
                 <div key={food._id} className="studio-item-card">
                   {isImage ? (
-                    <img src={mediaSrc} alt={food.name} className="studio-thumb" />
+                    <img src={mediaSrc || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'} alt={food.name} className="studio-thumb" />
                   ) : (
                     <video src={mediaSrc} className="studio-thumb" muted loop autoPlay playsInline preload="metadata" />
                   )}

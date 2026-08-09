@@ -69,7 +69,7 @@ async function toggleDutyStatus(req, res) {
         const partner = await deliveryPartnerModel.findByIdAndUpdate(
             req.deliveryPartner._id,
             { dutyStatus },
-            { new: true }
+            { returnDocument: 'after' }
         ).select('-password');
 
         res.status(200).json({ message: `Status updated to ${dutyStatus}`, partner });
@@ -92,7 +92,7 @@ async function updateLocation(req, res) {
                     updatedAt: new Date()
                 }
             },
-            { new: true }
+            { returnDocument: 'after' }
         ).select('-password');
 
         res.status(200).json({ message: "Location updated successfully", partner });
@@ -158,6 +158,8 @@ async function acceptOrder(req, res) {
     }
 }
 
+const OrderStateMachineService = require('../services/OrderStateMachineService');
+
 // Update Order Progress (Picked Up, Out for Delivery, Delivered)
 async function updateOrderProgress(req, res) {
     try {
@@ -167,30 +169,23 @@ async function updateOrderProgress(req, res) {
         const order = await orderModel.findById(orderId);
         if (!order) return res.status(404).json({ message: "Order not found" });
 
-        if (status === 'Delivered') {
+        const normStatus = (status === 'Delivered' || status === 'DELIVERED') ? 'DELIVERED' : status;
+
+        if (normStatus === 'DELIVERED') {
             if (otp && order.otp !== otp) {
                 return res.status(400).json({ message: "Invalid Delivery OTP" });
             }
-            order.payment.status = 'Completed';
-            await deliveryPartnerModel.findByIdAndUpdate(req.deliveryPartner._id, {
-                $inc: {
-                    'earnings.total': 50,
-                    'earnings.today': 50,
-                    completedDeliveries: 1
-                },
-                dutyStatus: 'online'
-            });
         }
 
-        order.status = status;
-        order.timeline.push({ status, timestamp: new Date() });
-        await order.save();
+        // Trigger State Machine Transition (handles earning release & ledger entries)
+        const updatedOrder = await OrderStateMachineService.transition(order._id, normStatus);
 
-        res.status(200).json({ message: `Order updated to ${status}`, order });
+        res.status(200).json({ message: `Order updated to ${status}`, order: updatedOrder });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 }
+
 
 // Delivery Earnings & History
 async function getEarningsAndHistory(req, res) {

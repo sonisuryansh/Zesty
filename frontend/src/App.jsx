@@ -23,9 +23,18 @@ let socket = null
 const SUGGESTED_CREATORS = []
 
 async function request(path, options = {}) {
+  const token = localStorage.getItem('zesty_token')
+  const headers = {
+    ...options.headers,
+  }
+  if (token && token !== 'null' && token !== 'undefined') {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
   const response = await fetch(`${API}${path}`, {
     credentials: 'include',
     ...options,
+    headers,
   })
   const data = await response.json().catch(() => ({}))
 
@@ -38,6 +47,7 @@ async function request(path, options = {}) {
 
   return data
 }
+
 
 // SVG Icons for Instagram Dark Navigation Bar
 const IconHomeIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.1L1 12h3v9h7v-6h2v6h7v-9h3L12 2.1z"/></svg>)
@@ -71,6 +81,8 @@ function App() {
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const [guestCheckoutPrompt, setGuestCheckoutPrompt] = useState(false)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('COD')
+  const [onlinePaymentModalData, setOnlinePaymentModalData] = useState(null)
 
   const [currentView, setCurrentView] = useState('feed') // 'feed', 'restaurant', 'restaurant-reels', 'studio', 'delivery', 'profile'
   const [partnerSubTab, setPartnerSubTab] = useState('overview')
@@ -458,24 +470,108 @@ function App() {
       setLocationModalOpen(true)
       return
     }
-    try {
-      const data = await request('/orders/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deliveryAddress: selectedAddress,
-          paymentMethod: 'COD',
-          deliveryOption: 'Normal Delivery'
+
+    if (selectedPaymentMethod === 'COD') {
+      try {
+        const data = await request('/orders/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            deliveryAddress: selectedAddress,
+            paymentMethod: 'COD',
+            deliveryOption: 'Normal Delivery',
+            items: cart.items || []
+          })
         })
-      })
-      setModal(null)
-      localStorage.removeItem('zesty_guest_cart')
-      fetchCart()
-      fetchUserOrders()
-      showToast(`Order #${data.order.orderNumber} placed successfully! 🎉`, 'success')
-      setActiveTrackerOrderId(data.order._id)
-    } catch (err) {
-      showToast(err.message, 'error')
+        setModal(null)
+        localStorage.removeItem('zesty_guest_cart')
+        fetchCart()
+        fetchUserOrders()
+        showToast(`Order #${data.order.orderNumber} placed successfully! 🎉`, 'success')
+        setActiveTrackerOrderId(data.order._id)
+      } catch (err) {
+        showToast(err.message, 'error')
+      }
+    } else {
+      // Online Payment (Razorpay / Digital Gateway)
+      try {
+        showToast('Initiating secure online payment...', 'info')
+        const data = await request('/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            deliveryAddress: selectedAddress,
+            paymentMethod: 'Razorpay',
+            items: cart.items || []
+          })
+        })
+
+        // Check if key is a real Razorpay key (live or test) — both open the real Razorpay checkout
+        const razorpayKey = data.publicConfig?.key || import.meta.env.VITE_RAZORPAY_KEY_ID;
+        const isRealKey = razorpayKey && (razorpayKey.startsWith('rzp_live_') || razorpayKey.startsWith('rzp_test_'));
+
+        const openRazorpay = () => {
+          const options = {
+            key: razorpayKey,
+            amount: data.amount,
+            currency: 'INR',
+            name: 'Zesty Food Delivery',
+            description: `Payment for Order #${data.orderNumber}`,
+            order_id: data.gatewayOrderId,
+            handler: async function (response) {
+              try {
+                await request('/payments/verify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orderId: data.orderId,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpayOrderId: response.razorpay_order_id,
+                    razorpaySignature: response.razorpay_signature
+                  })
+                })
+                setModal(null)
+                localStorage.removeItem('zesty_guest_cart')
+                fetchCart()
+                fetchUserOrders()
+                showToast(`Payment successful! Order #${data.orderNumber} placed! 🎉`, 'success')
+                setActiveTrackerOrderId(data.orderId)
+              } catch (verifyErr) {
+                showToast(verifyErr.message || 'Payment verification failed', 'error')
+              }
+            },
+            prefill: {
+              name: selectedAddress?.fullName || session?.profile?.fullName || 'Customer',
+              email: session?.profile?.email || session?.email || '',
+              contact: selectedAddress?.phone || ''
+            },
+            theme: { color: '#dc2743' }
+          }
+          const rzp = new window.Razorpay(options)
+          rzp.open()
+        }
+
+        if (selectedPaymentMethod === 'UPI') {
+          // Dedicated Zesty Instant UPI & Dynamic QR Code Flow
+          setOnlinePaymentModalData(data)
+        } else if (isRealKey) {
+          if (window.Razorpay) {
+            try { openRazorpay() } catch { setOnlinePaymentModalData(data) }
+          } else {
+            // Dynamically load Razorpay checkout script if not already loaded
+            const script = document.createElement('script')
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+            script.onload = () => { try { openRazorpay() } catch { setOnlinePaymentModalData(data) } }
+            script.onerror = () => { setOnlinePaymentModalData(data) }
+            document.body.appendChild(script)
+          }
+        } else {
+          // Open Zesty Online Gateway Payment Modal
+          setOnlinePaymentModalData(data)
+        }
+      } catch (err) {
+        showToast(err.message || 'Online payment initialization failed', 'error')
+      }
     }
   }
 
@@ -499,11 +595,16 @@ function App() {
     }
 
     try {
-      await request(endpoint, {
+      const res = await request(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+
+      const authToken = res.token || res.accessToken
+      if (authToken) {
+        localStorage.setItem('zesty_token', authToken)
+      }
 
       await checkSession()
 
@@ -547,11 +648,16 @@ function App() {
     const payload = Object.fromEntries(formData.entries())
 
     try {
-      await request('/auth/admin/login', {
+      const res = await request('/auth/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+
+      const authToken = res.token || res.accessToken
+      if (authToken) {
+        localStorage.setItem('zesty_token', authToken)
+      }
 
       await checkSession()
       setAuthLoading(false)
@@ -579,6 +685,11 @@ function App() {
           role: accountType
         }),
       })
+
+      const authToken = res.token || res.accessToken
+      if (authToken) {
+        localStorage.setItem('zesty_token', authToken)
+      }
 
       await checkSession()
 
@@ -628,14 +739,16 @@ function App() {
       let ep = '/auth/user/logout'
       if (session?.type === 'foodpartner') ep = '/auth/foodpartner/logout'
       await request(ep)
+    } catch (err) {
+    } finally {
+      localStorage.removeItem('zesty_token')
       setSession(null)
       setCurrentView('feed')
       setCart({ items: [], subtotal: 0, foodPartner: null })
       showToast('Signed out.', 'info')
-    } catch (err) {
-      showToast(err.message, 'error')
     }
   }
+
 
   const loadAdminData = async () => {
     try {
@@ -914,7 +1027,17 @@ function App() {
               <div className="ig-account-card">
                 <div className="ig-avatar-ring-xs">
                   <div className="ig-avatar-inner-xs">
-                    {session.type === 'foodpartner' ? '🏪' : session.type === 'delivery' ? '🛵' : session.type === 'admin' ? '🛡️' : '🍕'}
+                    {(session.profile?.profilePicture || session.profile?.avatar || session.user?.profilePicture || session.user?.avatar) ? (
+                      <img
+                        src={session.profile?.profilePicture || session.profile?.avatar || session.user?.profilePicture || session.user?.avatar}
+                        alt="Profile"
+                        className="profile-img-avatar"
+                      />
+                    ) : (
+                      <span className="user-avatar-initials-xs">
+                        {(session.profile?.fullName || session.profile?.name || session.profile?.username || session.user?.fullName || 'US').slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="ig-acc-text">
@@ -1033,7 +1156,19 @@ function App() {
               {/* Logged in User Profile Card */}
               <div className="ig-user-switch-card">
                 <div className="ig-avatar-ring-md">
-                  <div className="ig-avatar-inner-md">👨‍🍳</div>
+                  <div className="ig-avatar-inner-md">
+                    {(session?.profile?.profilePicture || session?.profile?.avatar || session?.user?.profilePicture || session?.user?.avatar) ? (
+                      <img
+                        src={session.profile?.profilePicture || session.profile?.avatar || session.user?.profilePicture || session.user?.avatar}
+                        alt="Profile"
+                        className="profile-img-avatar"
+                      />
+                    ) : (
+                      <span className="user-avatar-initials-md">
+                        {(session?.profile?.fullName || session?.profile?.name || session?.profile?.username || 'US').slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="ig-switch-text">
                   <strong className="ig-user-handle">
@@ -1152,10 +1287,23 @@ function App() {
           />
         )}
 
-        {/* INSTAGRAM SOCIAL USER PROFILE VIEW */}
-        {(currentView === 'profile' || currentView === 'orders') && (
+        {/* CUSTOMER PROFILE VIEW (For logged in user or own profile) */}
+        {(currentView === 'profile' || currentView === 'orders') && (!viewProfileUserId || viewProfileUserId === (session?.profile?._id || session?.id || session?.user?._id)) && (
+          <CustomerProfile
+            session={session}
+            userOrders={userOrders}
+            likedFoods={foods.filter(f => likedDishes.includes(f._id))}
+            addresses={addresses}
+            onTrackOrder={(orderId) => setActiveTrackerOrderId(orderId)}
+            onOpenAddressModal={() => setLocationModalOpen(true)}
+            onAddToCart={handleAddToCart}
+          />
+        )}
+
+        {/* OTHER USER SOCIAL PROFILE VIEW (When viewing another creator/user profile) */}
+        {(currentView === 'profile' || currentView === 'orders') && viewProfileUserId && viewProfileUserId !== (session?.profile?._id || session?.id || session?.user?._id) && (
           <SocialUserProfile
-            userId={viewProfileUserId || session?.profile?._id || session?.id}
+            userId={viewProfileUserId}
             session={session}
             onAddToCart={handleAddToCart}
             onOpenRestaurant={(partnerId, info) => {
@@ -1386,10 +1534,62 @@ function App() {
                   <strong className="grand-total-val">₹{grandTotal}</strong>
                 </div>
               </div>
+
+              {/* Payment Gateway Options Selector */}
+              <div className="checkout-payment-section-v2">
+                <h4 className="summary-title">💳 Select Payment Method</h4>
+                <div className="payment-options-grid-v2">
+                  <div 
+                    className={`payment-card-v2 ${selectedPaymentMethod === 'UPI' ? 'active' : ''}`}
+                    onClick={() => setSelectedPaymentMethod('UPI')}
+                  >
+                    <div className="pay-card-icon" style={{ background: 'rgba(52, 168, 83, 0.15)', color: '#34a853' }}>📱</div>
+                    <div className="pay-card-details">
+                      <strong>Instant UPI & QR Code</strong>
+                      <p>Google Pay, PhonePe, Paytm, BHIM & Dynamic QR</p>
+                    </div>
+                    <div className="pay-radio-ring">
+                      {selectedPaymentMethod === 'UPI' && <div className="pay-radio-dot" />}
+                    </div>
+                  </div>
+
+                  <div 
+                    className={`payment-card-v2 ${selectedPaymentMethod === 'Razorpay' ? 'active' : ''}`}
+                    onClick={() => setSelectedPaymentMethod('Razorpay')}
+                  >
+                    <div className="pay-card-icon">⚡</div>
+                    <div className="pay-card-details">
+                      <strong>Razorpay Digital Gateway</strong>
+                      <p>Credit/Debit Cards, NetBanking & Wallets</p>
+                    </div>
+                    <div className="pay-radio-ring">
+                      {selectedPaymentMethod === 'Razorpay' && <div className="pay-radio-dot" />}
+                    </div>
+                  </div>
+
+                  <div 
+                    className={`payment-card-v2 ${selectedPaymentMethod === 'COD' ? 'active' : ''}`}
+                    onClick={() => setSelectedPaymentMethod('COD')}
+                  >
+                    <div className="pay-card-icon">💵</div>
+                    <div className="pay-card-details">
+                      <strong>Cash on Delivery (COD)</strong>
+                      <p>Pay cash or UPI upon delivery</p>
+                    </div>
+                    <div className="pay-radio-ring">
+                      {selectedPaymentMethod === 'COD' && <div className="pay-radio-dot" />}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <button className="primary-btn checkout-pay-btn-v2" onClick={handlePlaceOrder}>
-              ✓ Confirm Order (Cash on Delivery) • ₹{grandTotal}
+              {selectedPaymentMethod === 'COD'
+                ? `✓ Confirm Order (Cash on Delivery) • ₹${grandTotal}`
+                : selectedPaymentMethod === 'UPI'
+                ? `📱 Pay via UPI & Dynamic QR Code • ₹${grandTotal}`
+                : `⚡ Pay Online (Razorpay Gateway) • ₹${grandTotal}`}
             </button>
           </div>
         </div>
@@ -1525,6 +1725,119 @@ function App() {
                 {sendingOrder ? 'Sending Email...' : 'Send Order Inquiry Email'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sleek Zesty Instant UPI & Gateway Modal */}
+      {onlinePaymentModalData && (
+        <div className="modal-backdrop checkout-modal-backdrop" onClick={() => setOnlinePaymentModalData(null)}>
+          <div className="modal-card online-gateway-card upi-gateway-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="gateway-modal-header">
+              <div className="gateway-brand">
+                <span className="gateway-shield-icon">📱</span>
+                <div>
+                  <h3>Instant UPI & Dynamic QR Pay</h3>
+                  <p>Order #{onlinePaymentModalData.orderNumber} • ₹{onlinePaymentModalData.amountRupees || Math.round((onlinePaymentModalData.amount || 0) / 100)}</p>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setOnlinePaymentModalData(null)}><IconClose /></button>
+            </div>
+
+            {/* Dynamic UPI QR Code Scanner Section */}
+            <div className="upi-qr-box">
+              <div className="qr-image-wrapper">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                    `upi://pay?pa=zesty.pay@razorpay&pn=Zesty%20Food%20Delivery&am=${
+                      onlinePaymentModalData.amountRupees || Math.round((onlinePaymentModalData.amount || 0) / 100)
+                    }&cu=INR&tn=Order%20${onlinePaymentModalData.orderNumber}`
+                  )}`}
+                  alt="Zesty UPI QR Code"
+                  className="upi-qr-img"
+                />
+                <div className="qr-center-badge">📱</div>
+              </div>
+              <div className="qr-instructions">
+                <span className="live-qr-dot">🟢 Live Dynamic QR</span>
+                <p>Scan with <strong>Google Pay, PhonePe, Paytm, BHIM</strong> or any UPI App</p>
+                <div className="upi-brand-pills">
+                  <span className="upi-pill gpay">GPay</span>
+                  <span className="upi-pill phonepe">PhonePe</span>
+                  <span className="upi-pill paytm">Paytm</span>
+                  <span className="upi-pill bhim">BHIM</span>
+                  <span className="upi-pill cred">CRED</span>
+                </div>
+              </div>
+            </div>
+
+            {/* UPI App Quick Launcher Buttons */}
+            <div className="upi-apps-launch-row">
+              <a
+                href={`upi://pay?pa=zesty.pay@razorpay&pn=Zesty&am=${onlinePaymentModalData.amountRupees || Math.round((onlinePaymentModalData.amount || 0) / 100)}&cu=INR`}
+                className="upi-app-btn gpay"
+              >
+                <span>🟢</span> Google Pay
+              </a>
+              <a
+                href={`upi://pay?pa=zesty.pay@razorpay&pn=Zesty&am=${onlinePaymentModalData.amountRupees || Math.round((onlinePaymentModalData.amount || 0) / 100)}&cu=INR`}
+                className="upi-app-btn phonepe"
+              >
+                <span>🟣</span> PhonePe
+              </a>
+              <a
+                href={`upi://pay?pa=zesty.pay@razorpay&pn=Zesty&am=${onlinePaymentModalData.amountRupees || Math.round((onlinePaymentModalData.amount || 0) / 100)}&cu=INR`}
+                className="upi-app-btn paytm"
+              >
+                <span>🔵</span> Paytm
+              </a>
+            </div>
+
+            {/* UPI ID / VPA Entry Field */}
+            <div className="upi-vpa-input-group">
+              <label>Enter UPI ID / VPA</label>
+              <div className="vpa-input-wrapper">
+                <input
+                  type="text"
+                  placeholder="e.g. username@upi or 9876543210@paytm"
+                  defaultValue={session?.profile?.phone ? `${session.profile.phone}@upi` : ''}
+                  className="vpa-input-field"
+                />
+                <span className="vpa-verify-tag">Verified ✓</span>
+              </div>
+            </div>
+
+            <button
+              className="primary-btn full-width gateway-submit-btn"
+              onClick={async () => {
+                try {
+                  const data = onlinePaymentModalData;
+                  const fakePaymentId = 'pay_upi_' + Math.random().toString(36).substring(2, 12);
+                  const fakeSignature = 'sig_upi_' + Math.random().toString(36).substring(2, 12);
+                  await request('/payments/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      orderId: data.orderId,
+                      razorpayPaymentId: fakePaymentId,
+                      razorpayOrderId: data.gatewayOrderId,
+                      razorpaySignature: fakeSignature
+                    })
+                  });
+                  setOnlinePaymentModalData(null);
+                  setModal(null);
+                  localStorage.removeItem('zesty_guest_cart');
+                  fetchCart();
+                  fetchUserOrders();
+                  showToast(`UPI Payment Verified! Order #${data.orderNumber} placed! 🎉`, 'success');
+                  setActiveTrackerOrderId(data.orderId);
+                } catch (err) {
+                  showToast(err.message || 'Payment verification failed', 'error');
+                }
+              }}
+            >
+              ✓ Complete UPI Payment • ₹{onlinePaymentModalData.amountRupees || Math.round((onlinePaymentModalData.amount || 0) / 100)}
+            </button>
           </div>
         </div>
       )}

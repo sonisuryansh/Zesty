@@ -66,7 +66,7 @@ export default function ReelCard({ food, onAddToCart, onOpenRestaurant, onEmailO
     }
   }
 
-  const partnerName = food.foodPartner?.name || 'Partner Kitchen'
+  const partnerName = food.foodPartner?.name || 'Restaurant'
   const partnerId = food.foodPartner?._id || food.foodPartner
   const isOnline = food.foodPartner?.isOnline !== false
   const rating = food.foodPartner?.rating || 0
@@ -76,13 +76,13 @@ export default function ReelCard({ food, onAddToCart, onOpenRestaurant, onEmailO
 
   return (
     <div className="reel-card ig-reel-card">
-      {isImagePost ? (
+      {food.image ? (
         <img
-          src={food.image || food.video}
-          alt={food.name}
+          src={food.image}
+          alt={food.name || 'Dish'}
           className="reel-video reel-image-post"
         />
-      ) : (
+      ) : food.video ? (
         <video
           ref={videoRef}
           src={food.video}
@@ -93,6 +93,10 @@ export default function ReelCard({ food, onAddToCart, onOpenRestaurant, onEmailO
           onClick={togglePlay}
           preload="metadata"
         />
+      ) : (
+        <div className="reel-video reel-image-post flex-center placeholder-media">
+          <span style={{ fontSize: '48px' }}>🍲</span>
+        </div>
       )}
 
       {/* Instagram Reels Overlay */}

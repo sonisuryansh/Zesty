@@ -21,7 +21,12 @@ export default function AdminControlPanel({ session, showToast, onLogout }) {
 
   const safeFetchJson = async (url, options = {}) => {
     try {
-      const res = await fetch(url, { credentials: 'include', ...options })
+      const token = localStorage.getItem('zesty_token')
+      const headers = { ...options.headers }
+      if (token && token !== 'null' && token !== 'undefined') {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const res = await fetch(url, { credentials: 'include', ...options, headers })
       const contentType = res.headers.get('content-type')
       if (contentType && contentType.includes('application/json')) {
         const data = await res.json()
@@ -32,6 +37,7 @@ export default function AdminControlPanel({ session, showToast, onLogout }) {
       return { ok: false, data: null }
     }
   }
+
 
   useEffect(() => {
     fetchAdminData()

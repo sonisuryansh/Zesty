@@ -63,8 +63,7 @@ async function registerUser(req, res) {
         isEmailVerified: false
     });
 
-    // Create session & tokens
-    const { session } = await createSession(req, res, user, 'User', 'user');
+    const { accessToken } = await createSession(req, res, user, 'User', 'user');
 
     // Dispatch verification email
     const verificationOtp = generate6DigitOTP();
@@ -90,6 +89,8 @@ async function registerUser(req, res) {
 
     res.status(201).json({
         message: "User registered successfully. Verification email dispatched.",
+        token: accessToken,
+        accessToken,
         user: {
             _id: user._id,
             email: user.email,
@@ -117,7 +118,7 @@ async function loginUser(req, res) {
     }
 
     await resetFailedLogin(user);
-    await createSession(req, res, user, 'User', 'user');
+    const { accessToken } = await createSession(req, res, user, 'User', 'user');
     console.log("🔐 User logged in");
 
     await logAuditEvent(req, {
@@ -130,6 +131,8 @@ async function loginUser(req, res) {
 
     res.status(200).json({
         message: "User logged in successfully",
+        token: accessToken,
+        accessToken,
         user: {
             _id: user._id,
             email: user.email,
@@ -170,7 +173,7 @@ async function registerFoodPartner(req, res) {
         approvalStatus: verificationDetails ? 'pending' : 'approved'
     });
 
-    await createSession(req, res, foodPartner, 'FoodPartner', 'foodpartner');
+    const { accessToken } = await createSession(req, res, foodPartner, 'FoodPartner', 'foodpartner');
 
     await logAuditEvent(req, {
         action: 'LOGIN',
@@ -182,6 +185,8 @@ async function registerFoodPartner(req, res) {
 
     res.status(201).json({
         message: "Food partner registered successfully",
+        token: accessToken,
+        accessToken,
         foodPartner: {
             _id: foodPartner._id,
             email: foodPartner.email,
@@ -210,7 +215,7 @@ async function loginFoodPartner(req, res) {
     }
 
     await resetFailedLogin(foodPartner);
-    await createSession(req, res, foodPartner, 'FoodPartner', 'foodpartner');
+    const { accessToken } = await createSession(req, res, foodPartner, 'FoodPartner', 'foodpartner');
 
     await logAuditEvent(req, {
         action: 'LOGIN',
@@ -222,6 +227,8 @@ async function loginFoodPartner(req, res) {
 
     res.status(200).json({
         message: "Food partner logged in successfully",
+        token: accessToken,
+        accessToken,
         foodPartner: {
             _id: foodPartner._id,
             email: foodPartner.email,
@@ -249,11 +256,11 @@ async function loginAdmin(req, res) {
     let admin = await adminModel.findOne({ email });
 
     // Seed default Super Admin if empty
-    if (!admin && email === 'admin@zesty.com' && password === 'admin123') {
-        const hashedPassword = await bcrypt.hash('admin123', 12);
+    if (!admin && (email === 'admin@zesty.app' || email === 'admin@zesty.com')) {
+        const hashedPassword = await bcrypt.hash(password, 12);
         admin = await adminModel.create({
             name: 'Super Admin',
-            email: 'admin@zesty.com',
+            email,
             password: hashedPassword,
             role: 'superadmin'
         });
@@ -298,7 +305,7 @@ async function loginAdmin(req, res) {
     }
 
     await resetFailedLogin(admin);
-    await createSession(req, res, admin, 'Admin', 'admin');
+    const { accessToken } = await createSession(req, res, admin, 'Admin', 'admin');
 
     await logAuditEvent(req, {
         action: 'LOGIN',
@@ -310,6 +317,8 @@ async function loginAdmin(req, res) {
 
     return res.status(200).json({
         message: "Super Admin logged in successfully",
+        token: accessToken,
+        accessToken,
         admin: { _id: admin._id, name: admin.name, email: admin.email, role: admin.role }
     });
 }
@@ -337,7 +346,7 @@ async function registerDeliveryPartner(req, res) {
         approvalStatus: 'pending'
     });
 
-    await createSession(req, res, partner, 'DeliveryPartner', 'delivery');
+    const { accessToken } = await createSession(req, res, partner, 'DeliveryPartner', 'delivery');
 
     await logAuditEvent(req, {
         action: 'LOGIN',
@@ -349,6 +358,8 @@ async function registerDeliveryPartner(req, res) {
 
     res.status(201).json({
         message: "Delivery partner registered successfully. Pending admin approval.",
+        token: accessToken,
+        accessToken,
         deliveryPartner: { _id: partner._id, name: partner.name, email: partner.email, phone: partner.phone, approvalStatus: partner.approvalStatus }
     });
 }
@@ -371,7 +382,7 @@ async function loginDeliveryPartner(req, res) {
     }
 
     await resetFailedLogin(partner);
-    await createSession(req, res, partner, 'DeliveryPartner', 'delivery');
+    const { accessToken } = await createSession(req, res, partner, 'DeliveryPartner', 'delivery');
 
     await logAuditEvent(req, {
         action: 'LOGIN',
@@ -383,6 +394,8 @@ async function loginDeliveryPartner(req, res) {
 
     return res.status(200).json({
         message: "Delivery partner logged in successfully",
+        token: accessToken,
+        accessToken,
         deliveryPartner: {
             _id: partner._id,
             name: partner.name,
@@ -531,7 +544,7 @@ async function loginGoogle(req, res) {
             throw new Error(`Failed to create or update ${modelType} in database ${mongoose.connection.name}`);
         }
 
-        await createSession(req, res, account, modelType, targetRole);
+        const { accessToken } = await createSession(req, res, account, modelType, targetRole);
 
         await logAuditEvent(req, {
             action: 'LOGIN',
@@ -545,6 +558,8 @@ async function loginGoogle(req, res) {
 
         return res.status(200).json({
             message: "Google OAuth authentication successful",
+            token: accessToken,
+            accessToken,
             user: {
                 id: account._id,
                 email: account.email,
@@ -758,7 +773,8 @@ async function logoutAll(req, res) {
 // ==========================================
 
 async function getMe(req, res) {
-    const token = req.cookies[securityConfig.COOKIES.ACCESS_COOKIE_NAME] || req.cookies.token;
+    const { extractToken } = require('../middlewares/auth.middleware');
+    const token = extractToken(req);
     if (!token) {
         return res.status(401).json({ message: "Not logged in" });
     }
@@ -770,20 +786,33 @@ async function getMe(req, res) {
             decoded = jwt.verify(token, process.env.JWT_SECRET || 'zesty_super_secret_jwt_key_2026');
         }
 
-        // User check
-        let user = await userModel.findById(decoded.id).select("-password");
+        const targetId = decoded.id || decoded._id || decoded.userId;
+
+        if (decoded.role === 'user') {
+            const user = await userModel.findById(targetId).select("-password");
+            if (user) return res.status(200).json({ type: "user", profile: user });
+        } else if (decoded.role === 'foodpartner') {
+            const foodPartner = await foodPartnerModel.findById(targetId).select("-password");
+            if (foodPartner) return res.status(200).json({ type: "foodpartner", profile: foodPartner });
+        } else if (decoded.role === 'admin') {
+            const admin = await adminModel.findById(targetId).select("-password");
+            if (admin) return res.status(200).json({ type: "admin", profile: admin });
+        } else if (decoded.role === 'delivery') {
+            const delivery = await deliveryPartnerModel.findById(targetId).select("-password");
+            if (delivery) return res.status(200).json({ type: "delivery", profile: delivery });
+        }
+
+        // Fallback check all models if role not specified
+        let user = await userModel.findById(targetId).select("-password");
         if (user) return res.status(200).json({ type: "user", profile: user });
 
-        // Food Partner check
-        let foodPartner = await foodPartnerModel.findById(decoded.id).select("-password");
+        let foodPartner = await foodPartnerModel.findById(targetId).select("-password");
         if (foodPartner) return res.status(200).json({ type: "foodpartner", profile: foodPartner });
 
-        // Admin check
-        let admin = await adminModel.findById(decoded.id).select("-password");
+        let admin = await adminModel.findById(targetId).select("-password");
         if (admin) return res.status(200).json({ type: "admin", profile: admin });
 
-        // Delivery Partner check
-        let delivery = await deliveryPartnerModel.findById(decoded.id).select("-password");
+        let delivery = await deliveryPartnerModel.findById(targetId).select("-password");
         if (delivery) return res.status(200).json({ type: "delivery", profile: delivery });
 
         return res.status(401).json({ message: "Invalid session" });

@@ -54,7 +54,7 @@ async function updateAddress(req, res) {
         const address = await addressModel.findOneAndUpdate(
             { _id: addressId, user: req.user._id },
             req.body,
-            { new: true }
+            { returnDocument: 'after' }
         );
 
         if (!address) return res.status(404).json({ message: "Address not found" });

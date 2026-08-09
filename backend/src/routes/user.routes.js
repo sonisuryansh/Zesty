@@ -8,7 +8,8 @@ const userModel = require('../models/user.model');
 // Soft auth middleware to extract viewer user if logged in without blocking unauthenticated requests
 async function softAuthMiddleware(req, res, next) {
     try {
-        const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+        const { extractToken } = require('../middlewares/auth.middleware');
+        const token = extractToken(req);
         if (token) {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'zesty_secret_key_2026');
             if (decoded.role === 'user' || !decoded.role) {

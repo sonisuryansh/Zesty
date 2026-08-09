@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const restaurantController = require('../controllers/restaurant.controller');
+const financeController = require('../controllers/finance.controller');
 const { authFoodPartnerMiddleware } = require('../middlewares/auth.middleware');
 
 // Public endpoints
@@ -13,4 +14,10 @@ router.put('/packaging', authFoodPartnerMiddleware, restaurantController.updateP
 router.get('/dashboard/stats', authFoodPartnerMiddleware, restaurantController.getRestaurantDashboard);
 router.get('/financials', authFoodPartnerMiddleware, restaurantController.getRestaurantFinancials);
 
+// New Financial Endpoints
+router.get('/earnings', authFoodPartnerMiddleware, financeController.getRestaurantEarnings);
+router.get('/settlements', authFoodPartnerMiddleware, financeController.getRestaurantSettlements);
+router.get('/orders/:orderId/financials', authFoodPartnerMiddleware, financeController.getRestaurantOrderFinancials);
+
 module.exports = router;
+

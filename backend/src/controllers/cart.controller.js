@@ -21,6 +21,7 @@ async function getCart(req, res) {
 }
 
 // Add Item to Cart
+// Add Item to Cart
 async function addToCart(req, res) {
     try {
         const { foodId, quantity = 1, instructions = '', customizations = [], clearAndAdd = false } = req.body;
@@ -39,25 +40,31 @@ async function addToCart(req, res) {
             cart = new cartModel({ user: req.user._id, items: [], subtotal: 0 });
         }
 
+        const foodPartnerId = food.foodPartner?._id || food.foodPartner;
+        const foodPartnerIdStr = foodPartnerId ? foodPartnerId.toString() : null;
+        const cartPartnerIdStr = cart.foodPartner ? cart.foodPartner.toString() : null;
+
         // Single restaurant cart rule
-        if (cart.foodPartner && cart.foodPartner.toString() !== food.foodPartner._id.toString() && cart.items.length > 0) {
+        if (cartPartnerIdStr && foodPartnerIdStr && cartPartnerIdStr !== foodPartnerIdStr && cart.items.length > 0) {
             if (!clearAndAdd) {
                 const currentPartner = await foodPartnerModel.findById(cart.foodPartner).select('name');
                 return res.status(409).json({
                     code: 'CART_RESTAURANT_MISMATCH',
                     message: `Your cart contains items from ${currentPartner?.name || 'another restaurant'}. Would you like to clear your cart and add this item?`,
                     existingRestaurant: currentPartner?.name || 'another restaurant',
-                    newRestaurant: food.foodPartner.name
+                    newRestaurant: food.foodPartner?.name || 'new restaurant'
                 });
             }
             // Clear cart for new restaurant if confirmed
-            cart.foodPartner = food.foodPartner._id;
+            cart.foodPartner = foodPartnerId;
             cart.items = [];
         } else {
-            cart.foodPartner = food.foodPartner._id;
+            if (foodPartnerId) {
+                cart.foodPartner = foodPartnerId;
+            }
         }
 
-        const existingIndex = cart.items.findIndex(item => item.food.toString() === foodId);
+        const existingIndex = cart.items.findIndex(item => (item.food?._id || item.food)?.toString() === foodId);
         const itemPrice = food.price || 299;
 
         if (existingIndex > -1) {
@@ -90,19 +97,28 @@ async function addToCart(req, res) {
 // Update Item Quantity
 async function updateCartItemQuantity(req, res) {
     try {
-        const { itemId, action } = req.body; // action: 'inc' or 'dec'
+        const { foodId, itemId, action, quantity } = req.body;
         const cart = await cartModel.findOne({ user: req.user._id });
         if (!cart) return res.status(404).json({ message: "Cart not found" });
 
-        const item = cart.items.id(itemId);
-        if (!item) return res.status(404).json({ message: "Item not in cart" });
+        const targetId = foodId || itemId;
+        const itemIndex = cart.items.findIndex(i =>
+            (i.food?._id || i.food)?.toString() === targetId || i._id?.toString() === targetId
+        );
 
-        if (action === 'inc') {
-            item.quantity += 1;
+        if (itemIndex === -1) return res.status(404).json({ message: "Item not in cart" });
+
+        if (quantity !== undefined) {
+            cart.items[itemIndex].quantity = quantity;
+            if (cart.items[itemIndex].quantity <= 0) {
+                cart.items.splice(itemIndex, 1);
+            }
+        } else if (action === 'inc') {
+            cart.items[itemIndex].quantity += 1;
         } else if (action === 'dec') {
-            item.quantity -= 1;
-            if (item.quantity <= 0) {
-                cart.items.pull(itemId);
+            cart.items[itemIndex].quantity -= 1;
+            if (cart.items[itemIndex].quantity <= 0) {
+                cart.items.splice(itemIndex, 1);
             }
         }
 
@@ -113,7 +129,43 @@ async function updateCartItemQuantity(req, res) {
         cart.subtotal = cart.items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
         await cart.save();
 
-        res.status(200).json({ message: "Cart updated", cart });
+        const populatedCart = await cartModel.findById(cart._id)
+            .populate('items.food')
+            .populate('foodPartner', 'name email isOnline rating location');
+
+        res.status(200).json({ message: "Cart updated", cart: populatedCart });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+// Remove Single Item from Cart
+async function removeFromCart(req, res) {
+    try {
+        const targetId = req.body?.foodId || req.body?.itemId || req.query?.foodId || req.query?.itemId || req.params?.foodId;
+        if (!targetId) {
+            return res.status(400).json({ message: "foodId or itemId is required to remove item from cart" });
+        }
+
+        const cart = await cartModel.findOne({ user: req.user._id });
+        if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+        cart.items = cart.items.filter(i =>
+            (i.food?._id || i.food)?.toString() !== targetId && i._id?.toString() !== targetId
+        );
+
+        if (cart.items.length === 0) {
+            cart.foodPartner = null;
+        }
+
+        cart.subtotal = cart.items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+        await cart.save();
+
+        const populatedCart = await cartModel.findById(cart._id)
+            .populate('items.food')
+            .populate('foodPartner', 'name email isOnline rating location');
+
+        res.status(200).json({ message: "Item removed from cart", cart: populatedCart });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -235,6 +287,7 @@ module.exports = {
     getCart,
     addToCart,
     updateCartItemQuantity,
+    removeFromCart,
     clearCart,
     mergeGuestCart
 };

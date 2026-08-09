@@ -63,7 +63,7 @@ async function updateUserStatus(req, res) {
     try {
         const { userId } = req.params;
         const { isBlocked } = req.body;
-        const user = await userModel.findByIdAndUpdate(userId, { isBlocked }, { new: true });
+        const user = await userModel.findByIdAndUpdate(userId, { isBlocked }, { returnDocument: 'after' });
         res.status(200).json({ message: "User status updated", user });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -94,7 +94,7 @@ async function updateRestaurantApproval(req, res) {
     try {
         const { partnerId } = req.params;
         const { status } = req.body; // approved, rejected, suspended
-        const restaurant = await foodPartnerModel.findByIdAndUpdate(partnerId, { approvalStatus: status }, { new: true });
+        const restaurant = await foodPartnerModel.findByIdAndUpdate(partnerId, { approvalStatus: status }, { returnDocument: 'after' });
         res.status(200).json({ message: `Restaurant ${status}`, restaurant });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -115,7 +115,7 @@ async function updateRiderApproval(req, res) {
     try {
         const { riderId } = req.params;
         const { status } = req.body; // approved, rejected, suspended
-        const rider = await deliveryPartnerModel.findByIdAndUpdate(riderId, { approvalStatus: status }, { new: true });
+        const rider = await deliveryPartnerModel.findByIdAndUpdate(riderId, { approvalStatus: status }, { returnDocument: 'after' });
         res.status(200).json({ message: `Delivery rider ${status}`, rider });
     } catch (err) {
         res.status(500).json({ message: err.message });

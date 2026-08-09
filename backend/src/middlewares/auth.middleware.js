@@ -5,6 +5,17 @@ const deliveryPartnerModel = require("../models/deliverypartner.model");
 const jwt = require('jsonwebtoken');
 const securityConfig = require('../config/security.config');
 
+// Helper to extract authentication token prioritizing Authorization Header over shared Cookies
+function extractToken(req) {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        const headerToken = req.headers.authorization.split(' ')[1];
+        if (headerToken && headerToken !== 'null' && headerToken !== 'undefined') {
+            return headerToken;
+        }
+    }
+    return req.cookies?.[securityConfig.COOKIES.ACCESS_COOKIE_NAME] || req.cookies?.token || null;
+}
+
 // Helper to verify token (accepts both access token & legacy JWT_SECRET)
 function verifyToken(token) {
     try {
@@ -16,7 +27,7 @@ function verifyToken(token) {
 
 // Food Partner Authentication Middleware
 async function authFoodPartnerMiddleware(req, res, next) {
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    const token = extractToken(req);
     if (!token) {
         return res.status(401).json({ message: "Please login first" });
     }
@@ -39,7 +50,7 @@ async function authFoodPartnerMiddleware(req, res, next) {
 
 // User / Customer Authentication Middleware
 async function authUserMiddleware(req, res, next) {
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    const token = extractToken(req);
     if (!token) {
         return res.status(401).json({ message: "Please login first" });
     }
@@ -62,7 +73,7 @@ async function authUserMiddleware(req, res, next) {
 
 // Super Admin Authentication Middleware
 async function authAdminMiddleware(req, res, next) {
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    const token = extractToken(req);
     if (!token) {
         return res.status(401).json({ message: "Admin authentication required" });
     }
@@ -82,7 +93,7 @@ async function authAdminMiddleware(req, res, next) {
 
 // Delivery Partner Authentication Middleware
 async function authDeliveryMiddleware(req, res, next) {
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    const token = extractToken(req);
     if (!token) {
         return res.status(401).json({ message: "Delivery partner authentication required" });
     }
@@ -111,6 +122,7 @@ function requireRoles(...roles) {
 }
 
 module.exports = {
+    extractToken,
     authFoodPartnerMiddleware,
     authUserMiddleware,
     authAdminMiddleware,

@@ -19,6 +19,7 @@ const cartRoutes = require('./routes/cart.routes');
 const addressRoutes = require('./routes/address.routes');
 const orderRoutes = require('./routes/order.routes');
 const userRoutes = require('./routes/user.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 const app = express();
 
@@ -60,7 +61,12 @@ const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 app.use(cookieParser(process.env.COOKIE_SECRET || 'zesty_cookie_secret_signed_2026'));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({
+    limit: '50mb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Safe In-Place Anti-NoSQL Injection Middleware
@@ -106,5 +112,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/address', addressRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/webhooks', paymentRoutes);
 
 module.exports = app;
+

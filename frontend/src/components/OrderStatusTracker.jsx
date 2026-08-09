@@ -110,14 +110,14 @@ export default function OrderStatusTracker({ orderId, onClose, socket }) {
           <div className="tracker-box">
             <h4>🏪 Restaurant</h4>
             <p><strong>{order.foodPartner?.name || 'Partner Kitchen'}</strong></p>
-            <p>📍 {order.foodPartner?.location?.address || 'Connaught Place'}</p>
+            <p>📍 {order.foodPartner?.location?.address || 'Location Not Specified'}</p>
           </div>
 
           <div className="tracker-box">
             <h4>🛵 Delivery Rider</h4>
             {order.deliveryPartner ? (
               <div>
-                <p><strong>{order.deliveryPartner.name}</strong> (⭐ {order.deliveryPartner.rating || 5.0})</p>
+                <p><strong>{order.deliveryPartner.name}</strong> {order.deliveryPartner.rating ? `(⭐ ${order.deliveryPartner.rating})` : ''}</p>
                 <p>📞 {order.deliveryPartner.phone}</p>
               </div>
             ) : (
@@ -127,7 +127,7 @@ export default function OrderStatusTracker({ orderId, onClose, socket }) {
 
           <div className="tracker-box">
             <h4>🔐 Delivery Security OTP</h4>
-            <span className="otp-display-badge">{order.otp || '1234'}</span>
+            <span className="otp-display-badge">{order.otp || '----'}</span>
             <p className="otp-subtext">Share this OTP with rider upon arrival</p>
           </div>
         </div>

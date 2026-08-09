@@ -47,12 +47,12 @@ export default function RestaurantProfile({ restaurantId, onBack, onOpenRestaura
       <div className="restaurant-header-card">
         <div className="rest-avatar-circle">👨‍🍳</div>
         <div className="rest-details">
-          <h2>{restaurant?.name || 'Artisan Food Partner'}</h2>
+          <h2>{restaurant?.name || 'Restaurant'}</h2>
           <p className="rest-cuisine">🍳 {restaurant?.cuisine || 'Multi-Cuisine'}</p>
-          <p className="rest-address">📍 {restaurant?.location?.address || 'Connaught Place, New Delhi'}</p>
+          <p className="rest-address">📍 {restaurant?.location?.address || 'Location Not Specified'}</p>
           
           <div className="rest-meta-row">
-            <span className="rating-badge">⭐ {restaurant?.rating || 4.8} ({restaurant?.totalRatings || 42}+ ratings)</span>
+            <span className="rating-badge">⭐ {restaurant?.rating || 0} {restaurant?.totalRatings ? `(${restaurant.totalRatings} ratings)` : ''}</span>
             <span className={`status-pill ${isOnline ? 'online' : 'offline'}`}>
               {isOnline ? '🟢 Open for Orders' : '🔴 Closed'}
             </span>
@@ -60,7 +60,7 @@ export default function RestaurantProfile({ restaurantId, onBack, onOpenRestaura
 
           <div className="profile-actions">
             <button className="primary-btn view-reels-btn" onClick={() => onOpenRestaurantReels(restaurantId, restaurant)}>
-              🎬 View {restaurant?.name}'s Reels
+              🎬 View {restaurant?.name || 'Restaurant'}'s Reels
             </button>
           </div>
         </div>
@@ -76,7 +76,7 @@ export default function RestaurantProfile({ restaurantId, onBack, onOpenRestaura
                 <h4>{food.name}</h4>
                 <p className="menu-item-desc">{food.description}</p>
                 <div className="menu-item-footer">
-                  <span className="price-tag">₹{food.price || 299}</span>
+                  <span className="price-tag">₹{food.price || 0}</span>
                   {isOnline ? (
                     <button className="primary-btn add-btn" onClick={() => onAddToCart(food)}>
                       + Add to Cart

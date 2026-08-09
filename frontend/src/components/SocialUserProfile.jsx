@@ -279,7 +279,7 @@ export default function SocialUserProfile({ userId, session, onAddToCart, onOpen
 
                     <div className="grid-overlay-bottom">
                       <h4>{food.name}</h4>
-                      <p className="grid-price-tag">₹{food.price || 299}</p>
+                      <p className="grid-price-tag">₹{food.price || 0}</p>
                       <p className="grid-partner-sub">by {food.foodPartner?.name || 'Partner Kitchen'}</p>
 
                       <button

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const cartModel = require('../models/cart.model');
 const foodModel = require('../models/food.model');
 const foodPartnerModel = require('../models/foodpartner.model');
@@ -137,12 +138,28 @@ async function clearCart(req, res) {
 // Merge Guest Cart into User Cart upon Login
 async function mergeGuestCart(req, res) {
     try {
-        const { items = [], clearAndAdd = false } = req.body;
-        if (!items || items.length === 0) {
+        if (!req.user || !req.user._id || !mongoose.isValidObjectId(req.user._id)) {
+            return res.status(401).json({ message: "Authentication required for cart merge" });
+        }
+
+        const rawItems = Array.isArray(req.body?.items) ? req.body.items : [];
+        const clearAndAdd = Boolean(req.body?.clearAndAdd);
+
+        // Filter valid items with valid Mongoose ObjectIds
+        const validGuestItems = rawItems.filter(item => {
+            const id = item?._id || item?.food || item?.foodId;
+            return id && mongoose.isValidObjectId(id);
+        });
+
+        if (validGuestItems.length === 0) {
             let userCart = await cartModel.findOne({ user: req.user._id })
                 .populate('items.food')
                 .populate('foodPartner', 'name email isOnline rating location');
-            return res.status(200).json({ cart: userCart });
+            
+            if (!userCart) {
+                userCart = { items: [], subtotal: 0, foodPartner: null };
+            }
+            return res.status(200).json({ message: "Guest cart empty, existing cart preserved", cart: userCart });
         }
 
         let cart = await cartModel.findOne({ user: req.user._id });
@@ -150,35 +167,42 @@ async function mergeGuestCart(req, res) {
             cart = new cartModel({ user: req.user._id, items: [], subtotal: 0 });
         }
 
-        // Get first food item to identify guest cart's restaurant
-        const firstFoodId = items[0]._id || items[0].food || items[0].foodId;
+        // Get first valid food item to identify restaurant
+        const firstFoodId = (validGuestItems[0]._id || validGuestItems[0].food || validGuestItems[0].foodId).toString();
         const firstFood = await foodModel.findById(firstFoodId);
 
-        if (firstFood && cart.foodPartner && cart.foodPartner.toString() !== firstFood.foodPartner.toString() && cart.items.length > 0) {
-            if (!clearAndAdd) {
-                const currentPartner = await foodPartnerModel.findById(cart.foodPartner).select('name');
-                const newPartner = await foodPartnerModel.findById(firstFood.foodPartner).select('name');
-                return res.status(409).json({
-                    code: 'CART_RESTAURANT_MISMATCH',
-                    message: `Your account cart contains items from ${currentPartner?.name || 'another restaurant'}. Would you like to replace it with your guest cart items from ${newPartner?.name || 'the new restaurant'}?`,
-                    existingRestaurant: currentPartner?.name || 'another restaurant',
-                    newRestaurant: newPartner?.name || 'new restaurant'
-                });
+        if (firstFood && firstFood.foodPartner) {
+            const newPartnerId = firstFood.foodPartner.toString();
+            if (cart.foodPartner && cart.foodPartner.toString() !== newPartnerId && cart.items.length > 0) {
+                if (!clearAndAdd) {
+                    const currentPartner = await foodPartnerModel.findById(cart.foodPartner).select('name');
+                    const newPartner = await foodPartnerModel.findById(firstFood.foodPartner).select('name');
+                    return res.status(409).json({
+                        code: 'CART_RESTAURANT_MISMATCH',
+                        message: `Your account cart contains items from ${currentPartner?.name || 'another restaurant'}. Would you like to replace it with guest cart items from ${newPartner?.name || 'the new restaurant'}?`,
+                        existingRestaurant: currentPartner?.name || 'another restaurant',
+                        newRestaurant: newPartner?.name || 'new restaurant'
+                    });
+                }
+                cart.items = [];
+                cart.foodPartner = firstFood.foodPartner;
+            } else {
+                cart.foodPartner = firstFood.foodPartner;
             }
-            cart.items = [];
-            cart.foodPartner = firstFood.foodPartner;
-        } else if (firstFood) {
-            cart.foodPartner = firstFood.foodPartner;
         }
 
-        for (const guestItem of items) {
-            const fId = guestItem._id || guestItem.food || guestItem.foodId;
+        for (const guestItem of validGuestItems) {
+            const fId = (guestItem._id || guestItem.food || guestItem.foodId).toString();
             const dbFood = await foodModel.findById(fId);
-            if (!dbFood) continue;
+            if (!dbFood || dbFood.isAvailable === false) continue;
 
-            const existingIdx = cart.items.findIndex(i => i.food.toString() === fId);
-            const price = dbFood.price || guestItem.price || 299;
-            const qty = guestItem.quantity || 1;
+            const existingIdx = cart.items.findIndex(i => {
+                const itemId = (i.food?._id || i.food)?.toString();
+                return itemId === fId;
+            });
+
+            const price = dbFood.price || Number(guestItem.price) || 0;
+            const qty = Math.max(1, Number(guestItem.quantity) || 1);
 
             if (existingIdx > -1) {
                 cart.items[existingIdx].quantity += qty;
@@ -200,9 +224,10 @@ async function mergeGuestCart(req, res) {
             .populate('items.food')
             .populate('foodPartner', 'name email isOnline rating location');
 
-        res.status(200).json({ message: "Guest cart merged successfully", cart: populatedCart });
+        return res.status(200).json({ message: "Guest cart merged successfully", cart: populatedCart });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error("[CartMerge Error]:", err.stack || err.message);
+        return res.status(400).json({ message: err.message || "Failed to merge guest cart" });
     }
 }
 

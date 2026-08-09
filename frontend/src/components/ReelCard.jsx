@@ -32,7 +32,7 @@ export default function ReelCard({ food, onAddToCart, onOpenRestaurant, onEmailO
   const videoRef = useRef(null)
   const [muted, setMuted] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [likeCount, setLikeCount] = useState(Math.floor(120 + Math.random() * 850))
+  const [likeCount, setLikeCount] = useState(food.likesCount || 0)
 
   useEffect(() => {
     const video = videoRef.current
@@ -66,11 +66,11 @@ export default function ReelCard({ food, onAddToCart, onOpenRestaurant, onEmailO
     }
   }
 
-  const partnerName = food.foodPartner?.name || 'Artisan Gourmet Kitchen'
+  const partnerName = food.foodPartner?.name || 'Partner Kitchen'
   const partnerId = food.foodPartner?._id || food.foodPartner
   const isOnline = food.foodPartner?.isOnline !== false
-  const rating = food.foodPartner?.rating || 4.8
-  const price = food.price || 299
+  const rating = food.foodPartner?.rating || 0
+  const price = food.price || 0
 
   const isImagePost = food.mediaType === 'image' || (!food.video && food.image)
 

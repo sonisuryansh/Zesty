@@ -1,27 +1,30 @@
 import React, { useEffect, useState } from 'react'
 
-export default function DeliveryDashboard({ session, showToast, socket }) {
+export default function DeliveryDashboard({ session, showToast, socket, activeTab = 'active' }) {
   const [dutyStatus, setDutyStatus] = useState('online')
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(false)
   const [otpInput, setOtpInput] = useState('')
   const [activeOtpOrderId, setActiveOtpOrderId] = useState(null)
 
-  const [tab, setTab] = useState('active')
+  const [tab, setTab] = useState(activeTab || 'active')
+
+  useEffect(() => {
+    if (activeTab) {
+      setTab(activeTab)
+    }
+  }, [activeTab])
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
   const [financials, setFinancials] = useState(null)
 
   // Rider Payout & Payment State
   const [riderPayoutForm, setRiderPayoutForm] = useState({
-    upiId: 'rahulrider@okicici',
-    accountHolder: 'Rahul Kumar',
-    accountNumber: '543210987654',
-    ifscCode: 'ICIC0005432'
+    upiId: '',
+    accountHolder: '',
+    accountNumber: '',
+    ifscCode: ''
   })
-  const [riderPayoutHistory, setRiderPayoutHistory] = useState([
-    { id: 'rp1', date: '2026-08-02', amount: 1850, method: 'UPI (rahulrider@okicici)', txId: 'TXN7612091', status: 'Settled' },
-    { id: 'rp2', date: '2026-07-26', amount: 2400, method: 'UPI (rahulrider@okicici)', txId: 'TXN6541098', status: 'Settled' }
-  ])
+  const [riderPayoutHistory, setRiderPayoutHistory] = useState([])
   const [withdrawRequesting, setWithdrawRequesting] = useState(false)
 
   const safeFetchJson = async (url, options = {}) => {
@@ -44,37 +47,13 @@ export default function DeliveryDashboard({ session, showToast, socket }) {
     startGpsLocationTracking()
   }, [])
 
-  const SAMPLE_RIDER_ORDERS = [
-    {
-      _id: 'ord-101',
-      orderNumber: 'ZST-9821',
-      status: 'Ready',
-      foodPartner: { _id: 'rest-1', name: 'The Burger Craft Kitchen', location: { address: 'Faizabad Road, New Delhi', latitude: 28.6139, longitude: 77.2090 } },
-      deliveryAddress: { fullName: 'Suryansh Soni', houseNumber: 'Flat 101', street: 'Faizabad Road', city: 'New Delhi', latitude: 28.6200, longitude: 77.2100 },
-      distanceToRestaurant: 1.8,
-      distanceToCustomer: 3.4,
-      otp: '1234'
-    },
-    {
-      _id: 'ord-102',
-      orderNumber: 'ZST-8492',
-      status: 'Out for Delivery',
-      deliveryPartner: session?.profile?._id || session?.id || 'rider-1',
-      foodPartner: { _id: 'rest-1', name: 'The Burger Craft Kitchen', location: { address: 'Faizabad Road, New Delhi', latitude: 28.6139, longitude: 77.2090 } },
-      deliveryAddress: { fullName: 'Ananya Sharma', houseNumber: 'House 42', street: 'Connaught Place', city: 'New Delhi', latitude: 28.6200, longitude: 77.2100 },
-      distanceToRestaurant: 0.5,
-      distanceToCustomer: 2.1,
-      otp: '5678'
-    }
-  ]
-
   const fetchDeliveryOrders = async () => {
     setLoading(true)
     const { ok, data } = await safeFetchJson('/api/delivery/orders')
-    if (ok && data?.orders && data.orders.length > 0) {
+    if (ok && data?.orders) {
       setOrders(data.orders)
     } else {
-      setOrders(SAMPLE_RIDER_ORDERS)
+      setOrders([])
     }
     setLoading(false)
   }
@@ -141,7 +120,7 @@ export default function DeliveryDashboard({ session, showToast, socket }) {
   }
 
   const handleRequestWithdrawal = () => {
-    const availableEarnings = financials?.summary?.deliveryCommission || 1850
+    const availableEarnings = financials?.summary?.deliveryCommission || 0
     if (availableEarnings <= 0) {
       showToast('No available earnings to withdraw right now', 'error')
       return
@@ -174,14 +153,14 @@ export default function DeliveryDashboard({ session, showToast, socket }) {
     )
   }
 
-  const riderCommissionBalance = financials?.summary?.deliveryCommission || 1850
+  const riderCommissionBalance = financials?.summary?.deliveryCommission || 0
 
   return (
     <div className="delivery-portal-view">
       <div className="dashboard-header">
         <div className="dash-title-block">
           <h2>🛵 Delivery Partner Workspace</h2>
-          <p className="dash-sub-title">Welcome, {session?.profile?.name || 'Rahul Kumar (Rider)'}! Track active deliveries & 5% delivery commissions.</p>
+          <p className="dash-sub-title">Welcome, {session?.profile?.name || 'Delivery Partner'}! Track active deliveries & 5% delivery commissions.</p>
         </div>
 
         <div className="online-toggle-pill-card">
@@ -214,7 +193,7 @@ export default function DeliveryDashboard({ session, showToast, socket }) {
             <span className="stat-label">Completed Deliveries</span>
             <span className="stat-icon-badge success">🏁</span>
           </div>
-          <p className="stat-value">{financials?.summary?.totalCompletedDeliveries || 18}</p>
+          <p className="stat-value">{financials?.summary?.totalCompletedDeliveries || 0}</p>
           <span className="stat-trend positive">Delivered this month</span>
         </div>
 
@@ -261,14 +240,14 @@ export default function DeliveryDashboard({ session, showToast, socket }) {
                     <div className="assignment-details-grid">
                       <div className="detail-box">
                         <h5>🏪 Restaurant</h5>
-                        <p><strong>{ord.foodPartner?.name || 'The Burger Craft Kitchen'}</strong></p>
-                        <p className="address-sub">{ord.foodPartner?.location?.address || 'Faizabad Road, New Delhi'}</p>
-                        <span className="distance-pill">📍 Distance to Restaurant: <strong>{ord.distanceToRestaurant || 1.8} km</strong></span>
+                        <p><strong>{ord.foodPartner?.name || 'Partner Kitchen'}</strong></p>
+                        <p className="address-sub">{ord.foodPartner?.location?.address || ''}</p>
+                        <span className="distance-pill">📍 Distance to Restaurant: <strong>{ord.distanceToRestaurant || 0} km</strong></span>
                       </div>
 
                       <div className="detail-box">
                         <h5>👤 Customer</h5>
-                        <p><strong>{ord.deliveryAddress?.fullName || 'Suryansh Soni'}</strong></p>
+                        <p><strong>{ord.deliveryAddress?.fullName || 'Customer'}</strong></p>
                         <p className="address-sub">
                           {ord.deliveryAddress?.houseNumber || 'Flat 101'}, {ord.deliveryAddress?.street || 'Connaught Place'}, {ord.deliveryAddress?.city || 'New Delhi'}
                         </p>

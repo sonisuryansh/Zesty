@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import emailjs from '@emailjs/browser'
 import { io } from 'socket.io-client'
+import { GoogleLogin } from '@react-oauth/google'
 import './App.css'
 
 import ReelCard from './components/ReelCard'
@@ -19,7 +20,6 @@ import AdminControlPanel from './components/AdminControlPanel'
 const API = '/api'
 let socket = null
 
-const DEMO_REELS = []
 const SUGGESTED_CREATORS = []
 
 async function request(path, options = {}) {
@@ -72,7 +72,21 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false)
   const [guestCheckoutPrompt, setGuestCheckoutPrompt] = useState(false)
 
-  const [currentView, setCurrentView] = useState('feed') // 'feed', 'restaurant', 'restaurant-reels', 'studio', 'admin', 'delivery', 'profile'
+  const [currentView, setCurrentView] = useState('feed') // 'feed', 'restaurant', 'restaurant-reels', 'studio', 'delivery', 'profile'
+  const [partnerSubTab, setPartnerSubTab] = useState('overview')
+  const [riderSubTab, setRiderSubTab] = useState('active')
+  const [pathname, setPathname] = useState(window.location.pathname)
+
+  useEffect(() => {
+    const onPopState = () => setPathname(window.location.pathname)
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  const navigateTo = (path) => {
+    window.history.pushState({}, '', path)
+    setPathname(path)
+  }
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
   const [toast, setToast] = useState(null)
@@ -154,8 +168,7 @@ function App() {
     try {
       const data = await request('/auth/me')
       setSession(data)
-      if (data.type === 'admin') setCurrentView('admin')
-      else if (data.type === 'delivery') setCurrentView('delivery')
+      if (data.type === 'delivery') setCurrentView('delivery')
       else if (data.type === 'foodpartner') setCurrentView('studio')
 
       if (data.type === 'user') {
@@ -220,7 +233,7 @@ function App() {
       return
     }
 
-    // 2. CUSTOMER / GUEST CANNOT ACCESS PARTNER, RIDER OR ADMIN PORTALS
+    // 2. CUSTOMER / GUEST CANNOT ACCESS PARTNER OR RIDER PORTALS
     if (requiredRole && requiredRole !== 'user') {
       if (session?.type === requiredRole) {
         setCurrentView(targetView)
@@ -228,7 +241,7 @@ function App() {
         setAccountType(requiredRole)
         setMode('login')
         setModal('auth')
-        const roleName = requiredRole === 'foodpartner' ? 'Restaurant Partner' : requiredRole === 'delivery' ? 'Delivery Rider' : 'Super Admin'
+        const roleName = requiredRole === 'foodpartner' ? 'Restaurant Partner' : 'Delivery Rider'
         showToast(`🔒 Access Blocked: Customer accounts cannot access ${roleName} portal. Please Sign In with a verified ${roleName} account.`, 'error')
       }
       return
@@ -515,6 +528,9 @@ function App() {
         setModal('checkout')
       } else {
         setModal(null)
+        if (accountType === 'user') {
+          setCurrentView('feed')
+        }
       }
     } catch (err) {
       setAuthError(err.message)
@@ -522,110 +538,90 @@ function App() {
     }
   }
 
-  // Fake / Demo User Sign In Handler
-  const handleDemoUserLogin = () => {
-    const demoSession = {
-      type: 'user',
-      id: 'user-demo-101',
-      profile: {
-        _id: 'user-demo-101',
-        fullName: 'Suryansh Soni',
-        displayName: 'Suryansh Soni 🍕',
-        username: '_suryanshsoni',
-        email: 'suryansh@zesty.app',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-        profilePicture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-        bio: 'Gourmet Foodie & Reel Explorer 🍕 Loving Artisanal Burgers, Pizzas & Desserts!',
-        location: 'New Delhi, India',
-        website: 'https://zesty.app/_suryanshsoni',
-        followersCount: 2400,
-        followingCount: 320,
-        postsCount: 125
-      }
+  const handleAdminLoginFormSubmit = async (e) => {
+    e.preventDefault()
+    setAuthError('')
+    setAuthLoading(true)
+
+    const formData = new FormData(e.target)
+    const payload = Object.fromEntries(formData.entries())
+
+    try {
+      await request('/auth/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      await checkSession()
+      setAuthLoading(false)
+      showToast('Super Admin authenticated successfully! 🛡️', 'success')
+    } catch (err) {
+      setAuthError(err.message)
+      setAuthLoading(false)
     }
-
-    setSession(demoSession)
-    setViewProfileUserId('user-demo-101')
-    setModal(null)
-
-    setUserOrders([
-      {
-        _id: 'demo-ord-1',
-        orderNumber: 'ZST-849201',
-        createdAt: new Date(),
-        status: 'Out for Delivery',
-        pricing: { grandTotal: 469 },
-        foodPartner: { name: 'The Burger Craft Kitchen' },
-        items: [{ quantity: 1, name: 'Truffle Smashed Wagyu Cheeseburger' }]
-      }
-    ])
-
-    setSelectedAddress({
-      label: 'Home',
-      fullName: 'Suryansh Soni',
-      phone: '+91 9876543210',
-      houseNumber: 'Flat 101',
-      street: 'Faizabad Road',
-      city: 'New Delhi',
-      pincode: '110001',
-      isDefault: true
-    })
-
-    showToast('Signed in as @_suryanshsoni 🍕', 'success')
   }
 
-  const handleDemoPartnerLogin = () => {
-    const demoPartner = {
-      type: 'foodpartner',
-      id: 'partner-demo-1',
-      profile: {
-        _id: 'rest-1',
-        name: 'The Burger Craft Kitchen',
-        restaurantName: 'The Burger Craft Kitchen',
-        email: 'partner@burgercraft.com',
-        isOnline: true,
-        rating: 4.9
-      }
+  const handleGoogleSuccess = async (credentialResponse) => {
+    if (!credentialResponse || !credentialResponse.credential) {
+      showToast('Google Sign-In credential token missing', 'error')
+      return
     }
-    setSession(demoPartner)
-    setCurrentView('studio')
-    setModal(null)
-    showToast('Switched to Restaurant Partner Portal: The Burger Craft 🏪', 'success')
+    setAuthError('')
+    setAuthLoading(true)
+
+    try {
+      const res = await request('/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken: credentialResponse.credential,
+          role: accountType
+        }),
+      })
+
+      await checkSession()
+
+      const guestCartObj = loadGuestCart()
+      if (guestCartObj.items && guestCartObj.items.length > 0) {
+        try {
+          const mergeRes = await request('/cart/merge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: guestCartObj.items })
+          })
+          setCart(mergeRes.cart)
+          localStorage.removeItem('zesty_guest_cart')
+        } catch {}
+      }
+
+      setAuthLoading(false)
+      showToast(`Welcome! Signed in with Google as ${res.user?.name || res.user?.email || accountType}`, 'success')
+
+      if (guestCheckoutPrompt) {
+        setGuestCheckoutPrompt(false)
+        setModal('checkout')
+      } else {
+        setModal(null)
+        if (accountType === 'user') {
+          setCurrentView('feed')
+        } else if (accountType === 'foodpartner') {
+          setCurrentView('studio')
+        } else if (accountType === 'delivery') {
+          setCurrentView('delivery')
+        }
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Google Authentication failed')
+      setAuthLoading(false)
+    }
   }
 
-  const handleDemoRiderLogin = () => {
-    const demoRider = {
-      type: 'delivery',
-      id: 'rider-demo-1',
-      profile: {
-        _id: 'rider-1',
-        name: 'Rahul Kumar (Rider)',
-        phone: '+91 9876501234',
-        vehicleNumber: 'DL 01 AB 1234',
-        isAvailable: true
-      }
-    }
-    setSession(demoRider)
-    setCurrentView('delivery')
-    setModal(null)
-    showToast('Switched to Delivery Rider Workspace: Rider Rahul 🛵', 'success')
+  const handleGoogleError = () => {
+    showToast('Google OAuth window closed or authentication failed', 'error')
   }
 
-  const handleDemoAdminLogin = () => {
-    const demoAdmin = {
-      type: 'admin',
-      id: 'admin-demo-1',
-      profile: {
-        _id: 'admin-1',
-        name: 'Zesty Super Admin',
-        email: 'admin@zesty.app'
-      }
-    }
-    setSession(demoAdmin)
-    setCurrentView('admin')
-    setModal(null)
-    showToast('Switched to Super Admin Control Panel 🛡️', 'success')
-  }
+
 
   const handleLogout = async () => {
     try {
@@ -680,9 +676,9 @@ function App() {
   const handleDirectOrderSubmit = (e) => {
     e.preventDefault()
     setSendingOrder(true)
-    const serviceID = 'service_67j4lwr'
-    const templateID = 'template_w6rvyks'
-    const publicKey = '64o3qUkyYw31zTyg7'
+    const serviceID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_im1x99p'
+    const templateID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_hlypikk'
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '8B2JshnA4pf-Qb4lO'
 
     const templateParams = {
       user_name: orderForm.name,
@@ -711,6 +707,82 @@ function App() {
 
   const activeCartCount = cart.items?.reduce((s, i) => s + i.quantity, 0) || 0
 
+  if (pathname.startsWith('/admin')) {
+    return (
+      <div className="ig-web-shell admin-shell" data-theme={themeMode}>
+        {toast && <div className={`toast toast-${toast.type}`}>{toast.message}</div>}
+
+        {session?.type === 'admin' ? (
+          <div className="admin-portal-container">
+            <div className="admin-top-nav">
+              <div className="admin-nav-brand" onClick={() => navigateTo('/')}>
+                <img src="/favicon.svg" alt="Zesty Logo" className="ig-logo-icon" />
+                <h2>Zesty Admin Console</h2>
+              </div>
+              <div className="admin-nav-right">
+                <span className="admin-user-pill">🛡️ {session.profile?.name || session.profile?.email || 'Super Admin'}</span>
+                <button className="secondary-btn sm" onClick={toggleThemeMode}>{themeMode === 'dark' ? '☀️ Light' : '🌙 Dark'}</button>
+                <button className="secondary-btn sm danger" onClick={handleLogout}>🔒 Sign Out Admin</button>
+              </div>
+            </div>
+            <AdminControlPanel session={session} showToast={showToast} onLogout={handleLogout} />
+          </div>
+        ) : session ? (
+          <div className="admin-portal-container flex-center">
+            <div className="access-blocked-card admin-forbidden-card">
+              <div className="forbidden-badge">🔒 403 Forbidden</div>
+              <h2>Admin Access Restricted</h2>
+              <p>You are currently authenticated as <strong>{session.type.toUpperCase()}</strong> ({session.profile?.email || session.profile?.fullName || session.email}).</p>
+              <p className="access-sub">Super Admin role privileges are required to view /admin. Customer and Partner accounts do not have access to platform management tools.</p>
+              <div className="forbidden-actions">
+                <button className="primary-btn" onClick={() => navigateTo('/')}>
+                  ➔ Return to Public Website
+                </button>
+                <button className="secondary-btn" onClick={handleLogout}>
+                  Sign Out of Current Account
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="admin-portal-container flex-center">
+            <div className="admin-login-card">
+              <div className="admin-card-header">
+                <span className="admin-shield-icon">🛡️</span>
+                <h2>Super Admin Portal</h2>
+                <p>Protected Enterprise Management Console</p>
+              </div>
+
+              <form onSubmit={handleAdminLoginFormSubmit} className="auth-form admin-login-form">
+                <div className="form-group-v2">
+                  <label className="input-label-v2">Admin Email Address</label>
+                  <input type="email" name="email" required placeholder="admin@zesty.app" className="input-field-v2" />
+                </div>
+
+                <div className="form-group-v2">
+                  <label className="input-label-v2">Master Password</label>
+                  <input type="password" name="password" required placeholder="••••••••" className="input-field-v2" />
+                </div>
+
+                {authError && <p className="error-msg">{authError}</p>}
+
+                <button type="submit" className="primary-btn full-width" disabled={authLoading}>
+                  {authLoading ? 'Verifying Admin Security...' : 'Sign In to Admin Console 🛡️'}
+                </button>
+              </form>
+
+              <div className="admin-login-footer">
+                <button className="text-link-sm" onClick={() => navigateTo('/')}>
+                  ← Return to Public Website
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="ig-web-shell" data-theme={themeMode}>
       {toast && <div className={`toast toast-${toast.type}`}>{toast.message}</div>}
@@ -728,22 +800,22 @@ function App() {
           {session?.type === 'foodpartner' || currentView === 'studio' ? (
             <>
               <button
-                className={`ig-nav-item ${currentView === 'studio' ? 'active' : ''}`}
-                onClick={() => setCurrentView('studio')}
+                className={`ig-nav-item ${currentView === 'studio' && partnerSubTab === 'overview' ? 'active' : ''}`}
+                onClick={() => { setPartnerSubTab('overview'); setCurrentView('studio'); }}
               >
                 <span className="ig-emoji-icon">🏪</span>
                 <span className="ig-nav-label">Partner Studio</span>
               </button>
               <button
-                className="ig-nav-item"
-                onClick={() => setCurrentView('studio')}
+                className={`ig-nav-item ${currentView === 'studio' && partnerSubTab === 'overview' ? 'active' : ''}`}
+                onClick={() => { setPartnerSubTab('overview'); setCurrentView('studio'); }}
               >
                 <span className="ig-emoji-icon">📋</span>
                 <span className="ig-nav-label">Kitchen Orders</span>
               </button>
               <button
-                className="ig-nav-item"
-                onClick={() => setCurrentView('studio')}
+                className={`ig-nav-item ${currentView === 'studio' && partnerSubTab === 'payouts' ? 'active' : ''}`}
+                onClick={() => { setPartnerSubTab('payouts'); setCurrentView('studio'); }}
               >
                 <span className="ig-emoji-icon">💳</span>
                 <span className="ig-nav-label">Payout & Bank</span>
@@ -752,51 +824,28 @@ function App() {
           ) : session?.type === 'delivery' || currentView === 'delivery' ? (
             <>
               <button
-                className={`ig-nav-item ${currentView === 'delivery' ? 'active' : ''}`}
-                onClick={() => setCurrentView('delivery')}
+                className={`ig-nav-item ${currentView === 'delivery' && riderSubTab === 'active' ? 'active' : ''}`}
+                onClick={() => { setRiderSubTab('active'); setCurrentView('delivery'); }}
               >
                 <span className="ig-emoji-icon">🛵</span>
                 <span className="ig-nav-label">Rider Workspace</span>
               </button>
               <button
-                className="ig-nav-item"
-                onClick={() => setCurrentView('delivery')}
+                className={`ig-nav-item ${currentView === 'delivery' && riderSubTab === 'active' ? 'active' : ''}`}
+                onClick={() => { setRiderSubTab('active'); setCurrentView('delivery'); }}
               >
                 <span className="ig-emoji-icon">📦</span>
                 <span className="ig-nav-label">Deliveries</span>
               </button>
               <button
-                className="ig-nav-item"
-                onClick={() => setCurrentView('delivery')}
+                className={`ig-nav-item ${currentView === 'delivery' && riderSubTab === 'payouts' ? 'active' : ''}`}
+                onClick={() => { setRiderSubTab('payouts'); setCurrentView('delivery'); }}
               >
                 <span className="ig-emoji-icon">💳</span>
                 <span className="ig-nav-label">Rider Payout</span>
               </button>
             </>
-          ) : session?.type === 'admin' || currentView === 'admin' ? (
-            <>
-              <button
-                className={`ig-nav-item ${currentView === 'admin' ? 'active' : ''}`}
-                onClick={() => setCurrentView('admin')}
-              >
-                <span className="ig-emoji-icon">🛡️</span>
-                <span className="ig-nav-label">Admin Control</span>
-              </button>
-              <button
-                className="ig-nav-item"
-                onClick={() => setCurrentView('admin')}
-              >
-                <span className="ig-emoji-icon">🏪</span>
-                <span className="ig-nav-label">Restaurants List</span>
-              </button>
-              <button
-                className="ig-nav-item"
-                onClick={() => setCurrentView('admin')}
-              >
-                <span className="ig-emoji-icon">🚨</span>
-                <span className="ig-nav-label">Complaints Log</span>
-              </button>
-            </>
+
           ) : (
             <>
               <button
@@ -883,40 +932,7 @@ function App() {
             </button>
           )}
 
-          {/* Quick 1-Click Role Switcher for Testing */}
-          <div className="quick-test-user-strip">
-            <span className="strip-title">⚡ Instant Test Account Logins:</span>
-            <div className="strip-buttons-grid">
-              <button
-                className={`test-role-chip ${session?.type === 'user' ? 'active' : ''}`}
-                onClick={handleDemoUserLogin}
-                title="Log in as Test Customer (@_suryanshsoni)"
-              >
-                🍕 Customer
-              </button>
-              <button
-                className={`test-role-chip ${session?.type === 'foodpartner' ? 'active' : ''}`}
-                onClick={handleDemoPartnerLogin}
-                title="Log in as Test Restaurant Partner (The Burger Craft)"
-              >
-                🏪 Partner
-              </button>
-              <button
-                className={`test-role-chip ${session?.type === 'delivery' ? 'active' : ''}`}
-                onClick={handleDemoRiderLogin}
-                title="Log in as Test Delivery Rider (Rider Rahul)"
-              >
-                🛵 Rider
-              </button>
-              <button
-                className={`test-role-chip ${session?.type === 'admin' ? 'active' : ''}`}
-                onClick={handleDemoAdminLogin}
-                title="Log in as Test Super Admin"
-              >
-                🛡️ Admin
-              </button>
-            </div>
-          </div>
+
         </div>
       </aside>
 
@@ -1021,43 +1037,44 @@ function App() {
                 </div>
                 <div className="ig-switch-text">
                   <strong className="ig-user-handle">
-                    @{session?.profile?.username || '_suryanshsoni'}
+                    @{session?.profile?.username || (session?.profile?.email ? session.profile.email.split('@')[0] : 'foodie')}
                   </strong>
                   <span className="ig-user-fullname">
-                    {session?.profile?.fullName || 'Suryansh Soni'}
+                    {session?.profile?.fullName || session?.profile?.name || 'Food Explorer'}
                   </span>
                 </div>
-                <button className="ig-switch-link" onClick={handleDemoUserLogin}>
-                  Switch
-                </button>
               </div>
 
               {/* Suggested for You Header */}
-              <div className="ig-suggested-header">
-                <span>Suggested for you</span>
-                <button className="ig-see-all-btn" onClick={() => showToast('Exploring food creators...', 'info')}>See all</button>
-              </div>
-
-              {/* Suggested Creators List */}
-              <div className="ig-suggested-list">
-                {SUGGESTED_CREATORS.map((c) => (
-                  <div key={c.id} className="ig-suggested-item">
-                    <div className="ig-avatar-ring-sm">
-                      <div className="ig-avatar-inner-sm">{c.avatar}</div>
-                    </div>
-                    <div className="ig-suggested-info">
-                      <span className="suggested-name">{c.handle}</span>
-                      <span className="suggested-sub">{c.sub}</span>
-                    </div>
-                    <button
-                      className="ig-follow-link"
-                      onClick={() => showToast(`Following @${c.handle}! 🎉`, 'success')}
-                    >
-                      Follow
-                    </button>
+              {SUGGESTED_CREATORS.length > 0 && (
+                <>
+                  <div className="ig-suggested-header">
+                    <span>Suggested for you</span>
+                    <button className="ig-see-all-btn" onClick={() => showToast('Exploring food creators...', 'info')}>See all</button>
                   </div>
-                ))}
-              </div>
+
+                  {/* Suggested Creators List */}
+                  <div className="ig-suggested-list">
+                    {SUGGESTED_CREATORS.map((c) => (
+                      <div key={c.id} className="ig-suggested-item">
+                        <div className="ig-avatar-ring-sm">
+                          <div className="ig-avatar-inner-sm">{c.avatar}</div>
+                        </div>
+                        <div className="ig-suggested-info">
+                          <span className="suggested-name">{c.handle}</span>
+                          <span className="suggested-sub">{c.sub}</span>
+                        </div>
+                        <button
+                          className="ig-follow-link"
+                          onClick={() => showToast(`Following @${c.handle}! 🎉`, 'success')}
+                        >
+                          Follow
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               {/* Ultra-Styled Instagram Web Footer Box with Dedicated Pages */}
               <div className="ig-footer-card-box">
@@ -1082,9 +1099,6 @@ function App() {
                     </button>
                     <button className="portal-footer-btn rider" onClick={() => handlePortalNavigation('delivery', 'delivery')}>
                       🛵 Rider Workspace
-                    </button>
-                    <button className="portal-footer-btn admin" onClick={() => handlePortalNavigation('admin', 'admin')}>
-                      🛡️ Admin Panel
                     </button>
                   </div>
                 </div>
@@ -1159,6 +1173,7 @@ function App() {
           <RestaurantDashboard
             session={session}
             showToast={showToast}
+            activeTab={partnerSubTab}
           />
         )}
 
@@ -1168,16 +1183,11 @@ function App() {
             session={session}
             showToast={showToast}
             socket={socket}
+            activeTab={riderSubTab}
           />
         )}
 
-        {/* ADMIN DASHBOARD VIEW */}
-        {(currentView === 'admin' || session?.type === 'admin') && (
-          <AdminControlPanel
-            session={session}
-            showToast={showToast}
-          />
-        )}
+
       </div>
 
       {/* Geolocation Address Modal */}
@@ -1393,18 +1403,13 @@ function App() {
             
             {accountType === 'foodpartner' ? (
               <div className="auth-header-block">
-                <h3>🏪 Restaurant Partner Portal Login</h3>
-                <p className="auth-subtext">Sign in to manage kitchen orders, store availability & food reels</p>
+                <h3>🏪 Partner Kitchen Portal</h3>
+                <p className="auth-subtext">Sign in to manage food reels, live menu & store availability</p>
               </div>
             ) : accountType === 'delivery' ? (
               <div className="auth-header-block">
-                <h3>🛵 Delivery Rider Workspace Login</h3>
+                <h3>🛵 Delivery Partner Workspace</h3>
                 <p className="auth-subtext">Sign in to accept delivery assignments & track 5% payouts</p>
-              </div>
-            ) : accountType === 'admin' ? (
-              <div className="auth-header-block">
-                <h3>🛡️ Super Admin Control Panel</h3>
-                <p className="auth-subtext">Sign in to manage platform users, restaurants & delivery partners</p>
               </div>
             ) : (
               <div className="auth-header-block">
@@ -1414,19 +1419,9 @@ function App() {
             )}
 
             <div className="role-selector">
-              {accountType === 'user' ? (
-                <>
-                  <button className="active" onClick={() => setAccountType('user')}>Customer Login</button>
-                  <button onClick={() => setAccountType('foodpartner')}>Restaurant Partner</button>
-                  <button onClick={() => setAccountType('delivery')}>Delivery Rider</button>
-                </>
-              ) : (
-                <>
-                  <button className={accountType === 'foodpartner' ? 'active' : ''} onClick={() => setAccountType('foodpartner')}>🏪 Restaurant Partner</button>
-                  <button className={accountType === 'delivery' ? 'active' : ''} onClick={() => setAccountType('delivery')}>🛵 Delivery Rider</button>
-                  <button className={accountType === 'admin' ? 'active' : ''} onClick={() => setAccountType('admin')}>🛡️ Admin</button>
-                </>
-              )}
+              <button className={accountType === 'user' ? 'active' : ''} onClick={() => setAccountType('user')}>🍕 Customer Login</button>
+              <button className={accountType === 'foodpartner' ? 'active' : ''} onClick={() => setAccountType('foodpartner')}>🏪 Restaurant Partner</button>
+              <button className={accountType === 'delivery' ? 'active' : ''} onClick={() => setAccountType('delivery')}>🛵 Delivery Rider</button>
             </div>
 
             <form onSubmit={handleAuthSubmit} className="auth-form">
@@ -1448,31 +1443,26 @@ function App() {
               {authError && <p className="error-msg">{authError}</p>}
 
               <button type="submit" className="primary-btn" disabled={authLoading}>
-                {authLoading ? 'Authenticating...' : mode === 'login' ? `Sign In as ${accountType === 'foodpartner' ? 'Partner' : accountType === 'delivery' ? 'Rider' : accountType === 'admin' ? 'Admin' : 'Customer'}` : `Register as ${accountType === 'foodpartner' ? 'Partner' : accountType === 'delivery' ? 'Rider' : accountType === 'admin' ? 'Admin' : 'Customer'}`}
+                {authLoading ? 'Authenticating...' : mode === 'login' ? `Sign In as ${accountType === 'foodpartner' ? 'Partner' : accountType === 'delivery' ? 'Rider' : 'Customer'}` : `Register as ${accountType === 'foodpartner' ? 'Partner' : accountType === 'delivery' ? 'Rider' : 'Customer'}`}
               </button>
             </form>
 
-            <div className="demo-login-divider">
-              <span>OR QUICK DEMO</span>
+            <div className="auth-divider">
+              <span>OR</span>
             </div>
 
-            {accountType === 'foodpartner' ? (
-              <button className="secondary-btn full-width demo-modal-btn" onClick={handleDemoPartnerLogin}>
-                ⚡ 1-Click Demo Restaurant Partner (The Burger Craft)
-              </button>
-            ) : accountType === 'delivery' ? (
-              <button className="secondary-btn full-width demo-modal-btn" onClick={handleDemoRiderLogin}>
-                ⚡ 1-Click Demo Delivery Rider (Rider Rahul)
-              </button>
-            ) : accountType === 'admin' ? (
-              <button className="secondary-btn full-width demo-modal-btn" onClick={handleDemoAdminLogin}>
-                ⚡ 1-Click Demo Super Admin
-              </button>
-            ) : (
-              <button className="secondary-btn full-width demo-modal-btn" onClick={handleDemoUserLogin}>
-                ⚡ 1-Click Demo Customer (@_suryanshsoni)
-              </button>
-            )}
+            <div className="google-auth-wrapper">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                shape="rectangular"
+                size="large"
+                width="100%"
+                theme="outline"
+                text={mode === 'signup' ? 'signup_with' : 'signin_with'}
+              />
+            </div>
+
 
             <div className="auth-toggle-banner">
               {mode === 'login' ? (

@@ -1,122 +1,61 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
-export default function AdminControlPanel({ session, showToast }) {
+export default function AdminControlPanel({ session, showToast, onLogout }) {
   const [activeTab, setActiveTab] = useState('restaurants')
 
-  // Sample State for Restaurant Partners
-  const [restaurants, setRestaurants] = useState([
-    {
-      id: 'rest-1',
-      name: 'The Burger Craft Kitchen',
-      owner: 'Chef Mario',
-      city: 'New Delhi',
-      avgRating: 4.9,
-      reviewCount: 128,
-      totalOrders: 1420,
-      status: 'active', // 'active', 'warning', 'blocked'
-      warningReason: '',
-      complaintsCount: 1,
-      reviews: [
-        { customer: 'Suryansh S.', rating: 5, comment: 'Best Truffle Wagyu burger in town! Hot and fresh.' },
-        { customer: 'Ananya S.', rating: 4.8, comment: 'Packaging was super neat and tamper proof.' }
-      ]
-    },
-    {
-      id: 'rest-2',
-      name: 'Bella Italia Trattoria',
-      owner: 'Marco Rossi',
-      city: 'Mumbai',
-      avgRating: 4.7,
-      reviewCount: 94,
-      totalOrders: 890,
-      status: 'active',
-      warningReason: '',
-      complaintsCount: 0,
-      reviews: [
-        { customer: 'Rahul M.', rating: 5, comment: 'Authentic Woodfired Pizza! Loved the cheese pull.' }
-      ]
-    },
-    {
-      id: 'rest-3',
-      name: 'Sweet Tooth Bakery',
-      owner: 'Chef Priya',
-      city: 'Lucknow',
-      avgRating: 4.2,
-      reviewCount: 45,
-      totalOrders: 310,
-      status: 'warning',
-      warningReason: 'Order preparation taking longer than 25 minutes. Improve prep speed.',
-      complaintsCount: 3,
-      reviews: [
-        { customer: 'Karan T.', rating: 3.5, comment: 'Pancakes were cold on arrival.' }
-      ]
-    }
-  ])
-
-  // Sample State for Delivery Riders
-  const [riders, setRiders] = useState([
-    {
-      id: 'rider-1',
-      name: 'Rahul Kumar (Rider)',
-      phone: '+91 9876501234',
-      city: 'New Delhi',
-      avgRating: 4.8,
-      ratingCount: 85,
-      completedDeliveries: 420,
-      status: 'active',
-      warningReason: '',
-      complaintsCount: 0,
-      reviews: [
-        { customer: 'Suryansh S.', rating: 5, comment: 'Very polite rider and super fast delivery!' }
-      ]
-    },
-    {
-      id: 'rider-2',
-      name: 'Amit Singh (Rider)',
-      phone: '+91 9812345678',
-      city: 'Lucknow',
-      avgRating: 3.9,
-      ratingCount: 42,
-      completedDeliveries: 150,
-      status: 'warning',
-      warningReason: 'Customer reported delayed delivery without updating GPS status.',
-      complaintsCount: 2,
-      reviews: [
-        { customer: 'Nidhi K.', rating: 3.0, comment: 'Rider took wrong route.' }
-      ]
-    }
-  ])
-
-  // Sample Complaints Log
-  const [complaints, setComplaints] = useState([
-    {
-      id: 'cmp-101',
-      orderNumber: '98124',
-      reportedBy: 'Suryansh Soni',
-      againstType: 'foodpartner',
-      targetName: 'Sweet Tooth Bakery',
-      targetId: 'rest-3',
-      issue: 'Food arrived cold and packaging seal was torn.',
-      date: '2026-08-08',
-      status: 'pending' // 'pending', 'warning_sent', 'blocked', 'resolved'
-    },
-    {
-      id: 'cmp-102',
-      orderNumber: '87192',
-      reportedBy: 'Nidhi Kumar',
-      againstType: 'delivery',
-      targetName: 'Amit Singh (Rider)',
-      targetId: 'rider-2',
-      issue: 'Rider did not follow GPS route and delayed delivery by 30 mins.',
-      date: '2026-08-07',
-      status: 'pending'
-    }
-  ])
+  const [restaurants, setRestaurants] = useState([])
+  const [riders, setRiders] = useState([])
+  const [complaints, setComplaints] = useState([])
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalRestaurants: 0,
+    totalDeliveryPartners: 0,
+    totalOrders: 0,
+    totalRevenue: 0
+  })
 
   // Modal State for Reviews / Warnings
   const [selectedEntityForReviews, setSelectedEntityForReviews] = useState(null)
   const [warningModalEntity, setWarningModalEntity] = useState(null)
   const [warningText, setWarningText] = useState('')
+
+  const safeFetchJson = async (url, options = {}) => {
+    try {
+      const res = await fetch(url, { credentials: 'include', ...options })
+      const contentType = res.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json()
+        return { ok: res.ok, data }
+      }
+      return { ok: false, data: null }
+    } catch {
+      return { ok: false, data: null }
+    }
+  }
+
+  useEffect(() => {
+    fetchAdminData()
+  }, [])
+
+  const fetchAdminData = async () => {
+    // 1. Stats
+    const { ok: okStats, data: statsData } = await safeFetchJson('/api/admin/dashboard-stats')
+    if (okStats && statsData?.stats) {
+      setStats(statsData.stats)
+    }
+
+    // 2. Restaurants
+    const { ok: okRest, data: restData } = await safeFetchJson('/api/admin/restaurants')
+    if (okRest && restData?.restaurants) {
+      setRestaurants(restData.restaurants)
+    }
+
+    // 3. Riders
+    const { ok: okRiders, data: ridersData } = await safeFetchJson('/api/admin/riders')
+    if (okRiders && ridersData?.riders) {
+      setRiders(ridersData.riders)
+    }
+  }
 
   // Handle Send Warning Notice
   const handleSendWarning = (e) => {
@@ -126,9 +65,9 @@ export default function AdminControlPanel({ session, showToast }) {
     const { type, id, name } = warningModalEntity
 
     if (type === 'foodpartner') {
-      setRestaurants(restaurants.map(r => r.id === id ? { ...r, status: 'warning', warningReason: warningText } : r))
+      setRestaurants(restaurants.map(r => (r._id || r.id) === id ? { ...r, status: 'warning', warningReason: warningText } : r))
     } else if (type === 'delivery') {
-      setRiders(riders.map(rd => rd.id === id ? { ...rd, status: 'warning', warningReason: warningText } : rd))
+      setRiders(riders.map(rd => (rd._id || rd.id) === id ? { ...rd, status: 'warning', warningReason: warningText } : rd))
     }
 
     // Mark related complaint as warning_sent
@@ -140,16 +79,25 @@ export default function AdminControlPanel({ session, showToast }) {
   }
 
   // Handle Toggle Block / Unblock Account
-  const handleToggleBlock = (type, id, name, currentStatus) => {
-    const nextStatus = currentStatus === 'blocked' ? 'active' : 'blocked'
+  const handleToggleBlock = async (type, id, name, currentStatus) => {
+    const nextStatus = currentStatus === 'suspended' || currentStatus === 'blocked' ? 'approved' : 'suspended'
+    const endpoint = type === 'foodpartner'
+      ? `/api/admin/restaurants/${id}/status`
+      : `/api/admin/riders/${id}/status`
+
+    await safeFetchJson(endpoint, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus })
+    })
 
     if (type === 'foodpartner') {
-      setRestaurants(restaurants.map(r => r.id === id ? { ...r, status: nextStatus } : r))
+      setRestaurants(restaurants.map(r => (r._id || r.id) === id ? { ...r, approvalStatus: nextStatus, status: nextStatus } : r))
     } else if (type === 'delivery') {
-      setRiders(riders.map(rd => rd.id === id ? { ...rd, status: nextStatus } : rd))
+      setRiders(riders.map(rd => (rd._id || rd.id) === id ? { ...rd, approvalStatus: nextStatus, status: nextStatus } : rd))
     }
 
-    if (nextStatus === 'blocked') {
+    if (nextStatus === 'suspended') {
       setComplaints(complaints.map(c => c.targetId === id ? { ...c, status: 'blocked' } : c))
       showToast(`Account Blocked & Suspended: ${name} 🚫`, 'error')
     } else {
@@ -163,6 +111,9 @@ export default function AdminControlPanel({ session, showToast }) {
     showToast('Complaint marked as resolved! ✓', 'success')
   }
 
+  const activePartnerCount = restaurants.filter(r => (r.approvalStatus || r.status) === 'approved' || (r.approvalStatus || r.status) === 'active').length
+  const platformCommissionEarnings = Math.round((stats.totalRevenue || 0) * 0.05)
+
   return (
     <div className="admin-dashboard-v2">
       <div className="admin-header-row">
@@ -173,7 +124,12 @@ export default function AdminControlPanel({ session, showToast }) {
 
         <div className="admin-badge-summary">
           <span className="badge-pill alert">🚨 {complaints.filter(c => c.status === 'pending').length} Active Complaints</span>
-          <span className="badge-pill success">🟢 {restaurants.filter(r => r.status === 'active').length} Active Partners</span>
+          <span className="badge-pill success">🟢 {activePartnerCount} Active Partners</span>
+          {onLogout && (
+            <button className="secondary-btn sm admin-logout-btn" onClick={onLogout}>
+              🔒 Sign Out Admin
+            </button>
+          )}
         </div>
       </div>
 
@@ -181,19 +137,19 @@ export default function AdminControlPanel({ session, showToast }) {
       <div className="admin-stats-grid">
         <div className="stat-card">
           <h4>Total Restaurants</h4>
-          <p>{restaurants.length}</p>
+          <p>{stats.totalRestaurants || restaurants.length}</p>
         </div>
         <div className="stat-card">
           <h4>Delivery Riders</h4>
-          <p>{riders.length}</p>
+          <p>{stats.totalDeliveryPartners || riders.length}</p>
         </div>
         <div className="stat-card">
-          <h4>Avg Restaurant Rating</h4>
-          <p>4.6 ★</p>
+          <h4>Total Orders</h4>
+          <p>{stats.totalOrders || 0}</p>
         </div>
         <div className="stat-card">
-          <h4>Platform Revenue (5%)</h4>
-          <p>₹48,590</p>
+          <h4>Platform Commission (5%)</h4>
+          <p>₹{platformCommissionEarnings.toLocaleString()}</p>
         </div>
       </div>
 
@@ -203,13 +159,13 @@ export default function AdminControlPanel({ session, showToast }) {
           className={activeTab === 'restaurants' ? 'active' : ''}
           onClick={() => setActiveTab('restaurants')}
         >
-          🏪 Restaurant Partners & Reviews ({restaurants.length})
+          🏪 Restaurant Partners ({restaurants.length})
         </button>
         <button
           className={activeTab === 'riders' ? 'active' : ''}
           onClick={() => setActiveTab('riders')}
         >
-          🛵 Delivery Riders & Ratings ({riders.length})
+          🛵 Delivery Riders ({riders.length})
         </button>
         <button
           className={activeTab === 'complaints' ? 'active' : ''}
@@ -222,7 +178,7 @@ export default function AdminControlPanel({ session, showToast }) {
       {/* 1. RESTAURANTS & REVIEWS TAB */}
       {activeTab === 'restaurants' && (
         <div className="dash-tab-content">
-          <h3>Restaurant Partners List & Average Ratings</h3>
+          <h3>Restaurant Partners List & Status</h3>
           <div className="orders-table-wrapper">
             <table className="admin-table">
               <thead>
@@ -230,67 +186,59 @@ export default function AdminControlPanel({ session, showToast }) {
                   <th>Restaurant & Owner</th>
                   <th>Location</th>
                   <th>Overall Avg Rating</th>
-                  <th>Total Orders</th>
-                  <th>Complaints</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {restaurants.map((rest) => (
-                  <tr key={rest.id}>
-                    <td>
-                      <strong>{rest.name}</strong>
-                      <br /><small>Owner: {rest.owner}</small>
-                    </td>
-                    <td>{rest.city}</td>
-                    <td>
-                      <span className="rating-pill-badge">
-                        ⭐ {rest.avgRating} ({rest.reviewCount} reviews)
-                      </span>
-                      <br />
-                      <button
-                        className="text-link-sm"
-                        onClick={() => setSelectedEntityForReviews({ type: 'foodpartner', ...rest })}
-                      >
-                        View All Reviews ➔
-                      </button>
-                    </td>
-                    <td>{rest.totalOrders} orders</td>
-                    <td>
-                      {rest.complaintsCount > 0 ? (
-                        <span className="danger-text font-bold">⚠️ {rest.complaintsCount} complaints</span>
-                      ) : (
-                        <span className="success-text">Clean (0)</span>
-                      )}
-                    </td>
-                    <td>
-                      {rest.status === 'blocked' ? (
-                        <span className="status-tag danger">🔴 Blocked</span>
-                      ) : rest.status === 'warning' ? (
-                        <span className="status-tag warning" title={rest.warningReason}>🟡 Warning Issued</span>
-                      ) : (
-                        <span className="status-tag success">🟢 Active</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="action-button-group">
-                        <button
-                          className="secondary-btn sm warning-btn"
-                          onClick={() => setWarningModalEntity({ type: 'foodpartner', id: rest.id, name: rest.name })}
-                        >
-                          ⚠️ Warning
-                        </button>
-                        <button
-                          className={`primary-btn sm ${rest.status === 'blocked' ? 'success' : 'danger'}`}
-                          onClick={() => handleToggleBlock('foodpartner', rest.id, rest.name, rest.status)}
-                        >
-                          {rest.status === 'blocked' ? '🟢 Unblock' : '🚫 Block'}
-                        </button>
-                      </div>
-                    </td>
+                {restaurants.length > 0 ? (
+                  restaurants.map((rest) => {
+                    const restId = rest._id || rest.id
+                    const restStatus = rest.approvalStatus || rest.status || 'approved'
+                    const isBlocked = restStatus === 'suspended' || restStatus === 'blocked'
+                    return (
+                      <tr key={restId}>
+                        <td>
+                          <strong>{rest.name || rest.restaurantName}</strong>
+                          <br /><small>{rest.email}</small>
+                        </td>
+                        <td>{rest.location?.address || rest.city || 'N/A'}</td>
+                        <td>
+                          <span className="rating-pill-badge">
+                            ⭐ {rest.rating || 0}
+                          </span>
+                        </td>
+                        <td>
+                          {isBlocked ? (
+                            <span className="status-tag danger">🔴 Suspended</span>
+                          ) : (
+                            <span className="status-tag success">🟢 Active</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="action-button-group">
+                            <button
+                              className="secondary-btn sm warning-btn"
+                              onClick={() => setWarningModalEntity({ type: 'foodpartner', id: restId, name: rest.name || rest.restaurantName })}
+                            >
+                              ⚠️ Warning
+                            </button>
+                            <button
+                              className={`primary-btn sm ${isBlocked ? 'success' : 'danger'}`}
+                              onClick={() => handleToggleBlock('foodpartner', restId, rest.name || rest.restaurantName, restStatus)}
+                            >
+                              {isBlocked ? '🟢 Unblock' : '🚫 Suspend'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="empty-table-cell">No restaurant partners registered yet.</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -300,67 +248,63 @@ export default function AdminControlPanel({ session, showToast }) {
       {/* 2. RIDERS & RATINGS TAB */}
       {activeTab === 'riders' && (
         <div className="dash-tab-content">
-          <h3>Delivery Riders List & Customer Ratings</h3>
+          <h3>Delivery Riders List</h3>
           <div className="orders-table-wrapper">
             <table className="admin-table">
               <thead>
                 <tr>
                   <th>Rider Name & Phone</th>
-                  <th>City</th>
-                  <th>Overall Avg Rating</th>
+                  <th>City / Address</th>
                   <th>Deliveries Completed</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {riders.map((rd) => (
-                  <tr key={rd.id}>
-                    <td>
-                      <strong>{rd.name}</strong>
-                      <br /><small>{rd.phone}</small>
-                    </td>
-                    <td>{rd.city}</td>
-                    <td>
-                      <span className="rating-pill-badge">
-                        ⭐ {rd.avgRating} ({rd.ratingCount} ratings)
-                      </span>
-                      <br />
-                      <button
-                        className="text-link-sm"
-                        onClick={() => setSelectedEntityForReviews({ type: 'delivery', ...rd })}
-                      >
-                        View Rider Feedback ➔
-                      </button>
-                    </td>
-                    <td>{rd.completedDeliveries} deliveries</td>
-                    <td>
-                      {rd.status === 'blocked' ? (
-                        <span className="status-tag danger">🔴 Blocked</span>
-                      ) : rd.status === 'warning' ? (
-                        <span className="status-tag warning" title={rd.warningReason}>🟡 Warning Issued</span>
-                      ) : (
-                        <span className="status-tag success">🟢 Active</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="action-button-group">
-                        <button
-                          className="secondary-btn sm warning-btn"
-                          onClick={() => setWarningModalEntity({ type: 'delivery', id: rd.id, name: rd.name })}
-                        >
-                          ⚠️ Warning
-                        </button>
-                        <button
-                          className={`primary-btn sm ${rd.status === 'blocked' ? 'success' : 'danger'}`}
-                          onClick={() => handleToggleBlock('delivery', rd.id, rd.name, rd.status)}
-                        >
-                          {rd.status === 'blocked' ? '🟢 Unblock' : '🚫 Block'}
-                        </button>
-                      </div>
-                    </td>
+                {riders.length > 0 ? (
+                  riders.map((rd) => {
+                    const riderId = rd._id || rd.id
+                    const riderStatus = rd.approvalStatus || rd.status || 'approved'
+                    const isBlocked = riderStatus === 'suspended' || riderStatus === 'blocked'
+                    return (
+                      <tr key={riderId}>
+                        <td>
+                          <strong>{rd.name}</strong>
+                          <br /><small>{rd.phone}</small>
+                        </td>
+                        <td>{rd.city || rd.currentLocation?.addressText || 'N/A'}</td>
+                        <td>{rd.completedDeliveries || 0} deliveries</td>
+                        <td>
+                          {isBlocked ? (
+                            <span className="status-tag danger">🔴 Suspended</span>
+                          ) : (
+                            <span className="status-tag success">🟢 Active</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="action-button-group">
+                            <button
+                              className="secondary-btn sm warning-btn"
+                              onClick={() => setWarningModalEntity({ type: 'delivery', id: riderId, name: rd.name })}
+                            >
+                              ⚠️ Warning
+                            </button>
+                            <button
+                              className={`primary-btn sm ${isBlocked ? 'success' : 'danger'}`}
+                              onClick={() => handleToggleBlock('delivery', riderId, rd.name, riderStatus)}
+                            >
+                              {isBlocked ? '🟢 Unblock' : '🚫 Suspend'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="empty-table-cell">No delivery riders registered yet.</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -384,46 +328,52 @@ export default function AdminControlPanel({ session, showToast }) {
                 </tr>
               </thead>
               <tbody>
-                {complaints.map((cmp) => (
-                  <tr key={cmp.id}>
-                    <td>
-                      <strong>{cmp.targetName}</strong>
-                      <br />
-                      <small>({cmp.againstType === 'foodpartner' ? 'Restaurant Partner' : 'Delivery Rider'})</small>
-                    </td>
-                    <td>
-                      {cmp.reportedBy}
-                      <br /><small>Order #{cmp.orderNumber}</small>
-                    </td>
-                    <td><span className="danger-text">{cmp.issue}</span></td>
-                    <td>{cmp.date}</td>
-                    <td>
-                      <span className={`status-tag ${cmp.status === 'resolved' ? 'success' : cmp.status === 'blocked' ? 'danger' : 'warning'}`}>
-                        {cmp.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-button-group">
-                        {cmp.status !== 'resolved' && (
-                          <button
-                            className="secondary-btn sm warning-btn"
-                            onClick={() => setWarningModalEntity({ type: cmp.againstType, id: cmp.targetId, name: cmp.targetName })}
-                          >
-                            ⚠️ Issue Warning
-                          </button>
-                        )}
-                        {cmp.status !== 'resolved' && (
-                          <button
-                            className="primary-btn sm success"
-                            onClick={() => handleResolveComplaint(cmp.id)}
-                          >
-                            ✓ Resolve
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                {complaints.length > 0 ? (
+                  complaints.map((cmp) => (
+                    <tr key={cmp.id}>
+                      <td>
+                        <strong>{cmp.targetName}</strong>
+                        <br />
+                        <small>({cmp.againstType === 'foodpartner' ? 'Restaurant Partner' : 'Delivery Rider'})</small>
+                      </td>
+                      <td>
+                        {cmp.reportedBy}
+                        <br /><small>Order #{cmp.orderNumber}</small>
+                      </td>
+                      <td><span className="danger-text">{cmp.issue}</span></td>
+                      <td>{cmp.date}</td>
+                      <td>
+                        <span className={`status-tag ${cmp.status === 'resolved' ? 'success' : cmp.status === 'blocked' ? 'danger' : 'warning'}`}>
+                          {cmp.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-button-group">
+                          {cmp.status !== 'resolved' && (
+                            <button
+                              className="secondary-btn sm warning-btn"
+                              onClick={() => setWarningModalEntity({ type: cmp.againstType, id: cmp.targetId, name: cmp.targetName })}
+                            >
+                              ⚠️ Issue Warning
+                            </button>
+                          )}
+                          {cmp.status !== 'resolved' && (
+                            <button
+                              className="primary-btn sm success"
+                              onClick={() => handleResolveComplaint(cmp.id)}
+                            >
+                              ✓ Resolve
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="empty-table-cell">No active customer complaints reported.</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -437,19 +387,23 @@ export default function AdminControlPanel({ session, showToast }) {
             <button className="modal-close" onClick={() => setSelectedEntityForReviews(null)}>×</button>
             <h3>⭐ Rating & Reviews: {selectedEntityForReviews.name}</h3>
             <p className="avg-rating-hero">
-              Overall Average Score: <strong>⭐ {selectedEntityForReviews.avgRating} / 5.0</strong>
+              Overall Average Score: <strong>⭐ {selectedEntityForReviews.avgRating || selectedEntityForReviews.rating || 0} / 5.0</strong>
             </p>
 
             <div className="reviews-list-container">
-              {selectedEntityForReviews.reviews?.map((rev, idx) => (
-                <div key={idx} className="admin-review-card">
-                  <div className="rev-header">
-                    <strong>{rev.customer}</strong>
-                    <span className="star-rating">⭐ {rev.rating}</span>
+              {selectedEntityForReviews.reviews && selectedEntityForReviews.reviews.length > 0 ? (
+                selectedEntityForReviews.reviews.map((rev, idx) => (
+                  <div key={idx} className="admin-review-card">
+                    <div className="rev-header">
+                      <strong>{rev.customer}</strong>
+                      <span className="star-rating">⭐ {rev.rating}</span>
+                    </div>
+                    <p className="rev-comment">"{rev.comment}"</p>
                   </div>
-                  <p className="rev-comment">"{rev.comment}"</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="empty-reviews-notice">No reviews logged for this partner yet.</p>
+              )}
             </div>
           </div>
         </div>
@@ -472,7 +426,7 @@ export default function AdminControlPanel({ session, showToast }) {
                   rows="4"
                   value={warningText}
                   onChange={(e) => setWarningText(e.target.value)}
-                  placeholder="e.g. Customer reported cold food and torn packaging seal. Please resolve immediately or account will be suspended."
+                  placeholder="Enter warning details..."
                 />
               </div>
               <button type="submit" className="primary-btn warning-submit-btn">

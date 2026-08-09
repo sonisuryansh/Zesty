@@ -61,9 +61,9 @@ export default function ProfileReelViewerModal({ reels = [], initialIndex = 0, o
     }
   }
 
-  const partnerName = currentReel.foodPartner?.name || 'Artisan Gourmet Kitchen'
+  const partnerName = currentReel.foodPartner?.name || 'Partner Kitchen'
   const partnerId = currentReel.foodPartner?._id || currentReel.foodPartner
-  const price = currentReel.price || 299
+  const price = currentReel.price || 0
   const isOnline = currentReel.foodPartner?.isOnline !== false
 
   return (

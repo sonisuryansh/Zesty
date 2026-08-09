@@ -7,14 +7,20 @@ const IconDelete = () => (
   </svg>
 )
 
-export default function RestaurantDashboard({ session, showToast }) {
+export default function RestaurantDashboard({ session, showToast, activeTab = 'overview' }) {
   const [stats, setStats] = useState(null)
   const [orders, setOrders] = useState([])
   const [foodItems, setFoodItems] = useState([])
   const [isOnline, setIsOnline] = useState(true)
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useState(activeTab || 'overview')
   const [uploading, setUploading] = useState(false)
   const [uploadMsg, setUploadMsg] = useState('')
+
+  useEffect(() => {
+    if (activeTab) {
+      setTab(activeTab)
+    }
+  }, [activeTab])
 
   // Financial Analytics State
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
@@ -22,16 +28,13 @@ export default function RestaurantDashboard({ session, showToast }) {
 
   // Payment & Payout Settings State
   const [payoutForm, setPayoutForm] = useState({
-    upiId: 'burgercraft@upi',
-    accountHolder: 'The Burger Craft Kitchen',
-    accountNumber: '987654321098',
-    ifscCode: 'HDFC0001234',
-    bankName: 'HDFC Bank Ltd'
+    upiId: '',
+    accountHolder: '',
+    accountNumber: '',
+    ifscCode: '',
+    bankName: ''
   })
-  const [payoutHistory, setPayoutHistory] = useState([
-    { id: 'p1', date: '2026-08-01', amount: 14580, method: 'UPI (burgercraft@upi)', txId: 'TXN9824101', status: 'Settled' },
-    { id: 'p2', date: '2026-07-25', amount: 18920, method: 'NEFT (HDFC 1098)', txId: 'TXN8714092', status: 'Settled' }
-  ])
+  const [payoutHistory, setPayoutHistory] = useState([])
   const [payoutRequesting, setPayoutRequesting] = useState(false)
 
   const safeFetchJson = async (url, options = {}) => {
@@ -63,33 +66,12 @@ export default function RestaurantDashboard({ session, showToast }) {
     }
   }
 
-  const SAMPLE_RESTAURANT_ORDERS = [
-    {
-      _id: 'ord-101',
-      orderNumber: 'ZST-9821',
-      status: 'Placed',
-      customer: { fullName: 'Suryansh Soni' },
-      deliveryAddress: { phone: '+91 9876543210', houseNumber: 'Flat 101', street: 'Faizabad Road', city: 'New Delhi' },
-      items: [{ quantity: 1, name: 'Truffle Smashed Wagyu Cheeseburger' }, { quantity: 1, name: 'Crisp Truffle Fries' }],
-      pricing: { grandTotal: 469 }
-    },
-    {
-      _id: 'ord-102',
-      orderNumber: 'ZST-8492',
-      status: 'Preparing',
-      customer: { fullName: 'Ananya Sharma' },
-      deliveryAddress: { phone: '+91 9812345678', houseNumber: 'House 42', street: 'Connaught Place', city: 'New Delhi' },
-      items: [{ quantity: 2, name: 'Artisan Woodfired Margherita Pizza' }],
-      pricing: { grandTotal: 798 }
-    }
-  ]
-
   const fetchOrders = async () => {
     const { ok, data } = await safeFetchJson('/api/orders/restaurant/incoming')
-    if (ok && data?.orders && data.orders.length > 0) {
+    if (ok && data?.orders) {
       setOrders(data.orders)
     } else {
-      setOrders(SAMPLE_RESTAURANT_ORDERS)
+      setOrders([])
     }
   }
 
@@ -125,7 +107,7 @@ export default function RestaurantDashboard({ session, showToast }) {
   }
 
   const handleRequestPayout = () => {
-    const availableAmount = financials?.summary?.netRestaurantIncome || 12450
+    const availableAmount = financials?.summary?.netRestaurantIncome || 0
     if (availableAmount <= 0) {
       showToast('No available balance to withdraw right now', 'error')
       return
@@ -209,13 +191,13 @@ export default function RestaurantDashboard({ session, showToast }) {
     )
   }
 
-  const netAvailableIncome = financials?.summary?.netRestaurantIncome || 12450
+  const netAvailableIncome = financials?.summary?.netRestaurantIncome || 0
 
   return (
     <div className="restaurant-dashboard-view">
       <div className="dashboard-header">
         <div className="dash-title-block">
-          <h2>🏪 {session?.profile?.name || session?.profile?.restaurantName || 'The Burger Craft Kitchen'} Dashboard</h2>
+          <h2>🏪 {session?.profile?.name || session?.profile?.restaurantName || 'Restaurant'} Dashboard</h2>
           <p className="dash-sub-title">Manage store availability, live kitchen orders & instant payouts</p>
         </div>
 
@@ -240,7 +222,7 @@ export default function RestaurantDashboard({ session, showToast }) {
             <span className="stat-label">Total Orders</span>
             <span className="stat-icon-badge blue">📦</span>
           </div>
-          <p className="stat-value">{stats?.totalOrders || orders.length || 14}</p>
+          <p className="stat-value">{stats?.totalOrders || orders.length || 0}</p>
           <span className="stat-trend positive">↑ Live order volume</span>
         </div>
 
@@ -258,7 +240,7 @@ export default function RestaurantDashboard({ session, showToast }) {
             <span className="stat-label">Gross Food Sales</span>
             <span className="stat-icon-badge success">💰</span>
           </div>
-          <p className="stat-value">₹{financials?.summary?.grossFoodSales || stats?.totalRevenue || 14850}</p>
+          <p className="stat-value">₹{financials?.summary?.grossFoodSales ?? stats?.totalRevenue ?? orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)}</p>
           <span className="stat-trend positive">+5% subtotal retained</span>
         </div>
 

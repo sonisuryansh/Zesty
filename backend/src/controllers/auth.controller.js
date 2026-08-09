@@ -396,81 +396,172 @@ async function loginDeliveryPartner(req, res) {
 // ==========================================
 
 async function loginGoogle(req, res) {
-    const { idToken, role = 'user' } = req.body;
+    const rawRole = (req.body.role || 'user').toLowerCase();
+    const idToken = req.body.idToken;
+
     try {
-        let email, name, picture, googleId;
-
-        // Try Google Auth verification or sandbox fallback
-        if (idToken && !idToken.startsWith('mock_')) {
-            const ticket = await googleClient.verifyIdToken({
-                idToken,
-                audience: process.env.GOOGLE_CLIENT_ID
-            });
-            const payload = ticket.getPayload();
-            email = payload.email;
-            name = payload.name;
-            picture = payload.picture;
-            googleId = payload.sub;
-        } else {
-            // Mock Google OAuth payload for local testing
-            email = req.body.email || 'googleuser@zesty.com';
-            name = req.body.name || 'Google User';
-            picture = 'https://lh3.googleusercontent.com/a/default-user';
-            googleId = 'google_123456789';
+        if (!idToken) {
+            return res.status(400).json({ message: "Google ID Token is required" });
         }
 
-        let model, modelType;
-        if (role === 'foodpartner') {
-            model = foodPartnerModel;
-            modelType = 'FoodPartner';
-        } else if (role === 'delivery') {
-            model = deliveryPartnerModel;
-            modelType = 'DeliveryPartner';
+        // Normalize target role
+        let targetRole = 'user';
+        if (rawRole === 'foodpartner' || rawRole === 'partner') {
+            targetRole = 'foodpartner';
+        } else if (rawRole === 'delivery' || rawRole === 'rider' || rawRole === 'deliverypartner') {
+            targetRole = 'delivery';
+        } else if (rawRole === 'user' || rawRole === 'customer') {
+            targetRole = 'user';
+        } else if (rawRole === 'admin') {
+            return res.status(403).json({ message: "Google OAuth authentication is not permitted for Super Admin accounts." });
         } else {
-            model = userModel;
-            modelType = 'User';
+            return res.status(400).json({ message: `Invalid portal role: ${rawRole}` });
         }
 
-        let account = await model.findOne({ $or: [{ email }, { googleId }] });
+        const ticket = await googleClient.verifyIdToken({
+            idToken,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        const email = payload.email ? payload.email.toLowerCase() : null;
+        const name = payload.name;
+        const picture = payload.picture;
+        const googleId = payload.sub;
 
-        if (!account) {
-            // Auto-signup via Google
-            const updateData = {
-                fullName: name,
-                name: name,
-                email: email,
-                googleId: googleId,
-                avatar: picture,
-                isEmailVerified: true
-            };
-            account = await model.create(updateData);
-        } else {
-            // Link Google Account if existing email matches
-            if (!account.googleId) {
-                account.googleId = googleId;
+        if (!email) {
+            return res.status(400).json({ message: "Verified email address not found in Google credentials." });
+        }
+
+        // Search across all models to check for role registration & cross-role mismatches
+        const existingUser = await userModel.findOne({ $or: [{ email }, { googleId }] });
+        const existingPartner = await foodPartnerModel.findOne({ $or: [{ email }, { googleId }] });
+        const existingRider = await deliveryPartnerModel.findOne({ $or: [{ email }, { googleId }] });
+
+        // Enforce role isolation & clear mismatch errors
+        if (targetRole === 'delivery') {
+            if (existingUser && !existingRider) {
+                return res.status(409).json({ message: "This Google account is registered as a Customer. Switch to the Customer Login tab." });
             }
-            account.isEmailVerified = true;
-            if (picture && !account.avatar) account.avatar = picture;
-            await account.save();
+            if (existingPartner && !existingRider) {
+                return res.status(409).json({ message: "This Google account is registered as a Restaurant Partner. Switch to the Restaurant Partner tab." });
+            }
+        } else if (targetRole === 'foodpartner') {
+            if (existingUser && !existingPartner) {
+                return res.status(409).json({ message: "This Google account is registered as a Customer. Switch to the Customer Login tab." });
+            }
+            if (existingRider && !existingPartner) {
+                return res.status(409).json({ message: "This Google account is registered as a Delivery Rider. Switch to the Delivery Rider tab." });
+            }
+        } else if (targetRole === 'user') {
+            if (existingRider && !existingUser) {
+                return res.status(409).json({ message: "This Google account is registered as a Delivery Rider. Switch to the Delivery Rider tab." });
+            }
+            if (existingPartner && !existingUser) {
+                return res.status(409).json({ message: "This Google account is registered as a Restaurant Partner. Switch to the Restaurant Partner tab." });
+            }
         }
 
-        await createSession(req, res, account, modelType, role);
+        let account, modelType;
+
+        if (targetRole === 'delivery') {
+            modelType = 'DeliveryPartner';
+            if (existingRider) {
+                account = existingRider;
+                if (!account.googleId) account.googleId = googleId;
+                account.isEmailVerified = true;
+                if (picture && !account.profilePicture) account.profilePicture = picture;
+                await account.save();
+                console.log(`[GoogleOAuth DB Write] Updated DeliveryPartner account ID: ${account._id}`);
+            } else {
+                console.log(`[GoogleOAuth DB Write] Creating new DeliveryPartner for email: ${email}`);
+                account = await deliveryPartnerModel.create({
+                    name: name || email.split('@')[0],
+                    email: email,
+                    googleId: googleId,
+                    profilePicture: picture || '',
+                    isEmailVerified: true,
+                    approvalStatus: 'approved',
+                    dutyStatus: 'offline'
+                });
+                console.log(`[GoogleOAuth DB Write] Created new DeliveryPartner account ID: ${account._id}`);
+            }
+        } else if (targetRole === 'foodpartner') {
+            modelType = 'FoodPartner';
+            if (existingPartner) {
+                account = existingPartner;
+                if (!account.googleId) account.googleId = googleId;
+                account.isEmailVerified = true;
+                if (picture && !account.avatar) account.avatar = picture;
+                await account.save();
+                console.log(`[GoogleOAuth DB Write] Updated FoodPartner account ID: ${account._id}`);
+            } else {
+                console.log(`[GoogleOAuth DB Write] Creating new FoodPartner for email: ${email}`);
+                account = await foodPartnerModel.create({
+                    name: name || email.split('@')[0],
+                    email: email,
+                    googleId: googleId,
+                    avatar: picture || '',
+                    isEmailVerified: true,
+                    approvalStatus: 'approved',
+                    isOnline: true
+                });
+                console.log(`[GoogleOAuth DB Write] Created new FoodPartner account ID: ${account._id}`);
+            }
+        } else {
+            modelType = 'User';
+            if (existingUser) {
+                account = existingUser;
+                if (!account.googleId) account.googleId = googleId;
+                account.isEmailVerified = true;
+                if (picture && !account.profilePicture && !account.avatar) {
+                    account.profilePicture = picture;
+                    account.avatar = picture;
+                }
+                await account.save();
+                console.log(`[GoogleOAuth DB Write] Updated User account ID: ${account._id}`);
+            } else {
+                console.log(`[GoogleOAuth DB Write] Creating new User for email: ${email}`);
+                account = await userModel.create({
+                    fullName: name || email.split('@')[0],
+                    name: name || email.split('@')[0],
+                    email: email,
+                    googleId: googleId,
+                    profilePicture: picture || '',
+                    avatar: picture || '',
+                    isEmailVerified: true
+                });
+                console.log(`[GoogleOAuth DB Write] Created new User account ID: ${account._id}`);
+            }
+        }
+
+        if (!account || !account._id) {
+            throw new Error(`Failed to create or update ${modelType} in database ${mongoose.connection.name}`);
+        }
+
+        await createSession(req, res, account, modelType, targetRole);
 
         await logAuditEvent(req, {
             action: 'LOGIN',
             performedBy: account._id,
             performerModel: modelType,
-            role: role,
+            role: targetRole,
             details: { method: 'Google OAuth' }
         });
 
         return res.status(200).json({
             message: "Google OAuth authentication successful",
+            user: {
+                id: account._id,
+                email: account.email,
+                name: account.fullName || account.name,
+                type: targetRole,
+                profile: account
+            },
             profile: account
         });
     } catch (err) {
-        console.error('Google OAuth Error:', err);
-        return res.status(400).json({ message: "Google OAuth verification failed", error: err.message });
+        console.error('Google OAuth Error:', err.stack || err.message);
+        return res.status(400).json({ message: err.message || "Google OAuth verification failed" });
     }
 }
 

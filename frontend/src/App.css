@@ -4595,68 +4595,11 @@ body.modal-open {
   padding: 60px 20px;
 }
 
-/* Demo User Sign In Button Styling */
+/* Unauthenticated Button Group */
 .unauth-btn-group {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.demo-login-btn {
-  background: linear-gradient(45deg, #f09433, #dc2743);
-  color: white;
-  padding: 8px 14px;
-  border-radius: var(--radius-round);
-  font-weight: 800;
-  font-size: 12px;
-  border: none;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease;
-}
-
-.demo-login-btn:hover {
-  transform: translateY(-1px);
-}
-
-.demo-login-divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 16px 0 12px;
-  position: relative;
-}
-
-.demo-login-divider::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: var(--border);
-  z-index: 1;
-}
-
-.demo-login-divider span {
-  background: white;
-  padding: 0 12px;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--text-muted);
-  z-index: 2;
-}
-
-.demo-modal-btn {
-  background: #fdf2f8;
-  color: #be185d;
-  border: 1px solid #fbcfe8;
-  font-weight: 800;
-  padding: 12px;
-  border-radius: var(--radius-sm);
-}
-
-.demo-modal-btn:hover {
-  background: #fce7f3;
 }
 
 /* ==========================================================================
@@ -7468,4 +7411,170 @@ body.modal-open {
 .ig-web-shell[data-theme="light"] .profile-tab-btn.active {
   color: #0f172a;
   border-color: #0f172a;
+}
+
+/* ==========================================================================
+   ISOLATED ADMIN PORTAL & ROUTE LAYOUT STYLING (/admin)
+   ========================================================================== */
+.admin-shell {
+  min-height: 100vh;
+  background: var(--bg-main, #0f172a);
+  color: var(--text-main, #f8fafc);
+}
+
+.admin-portal-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.admin-portal-container.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+}
+
+.admin-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.admin-nav-brand h2 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+  background: linear-gradient(45deg, #38bdf8, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.admin-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-user-pill {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.admin-login-card {
+  width: 100%;
+  max-width: 440px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.admin-card-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.admin-shield-icon {
+  font-size: 42px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.admin-card-header h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #f8fafc;
+}
+
+.admin-card-header p {
+  color: #94a3b8;
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin-login-footer {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.admin-forbidden-card {
+  text-align: center;
+  max-width: 520px;
+  padding: 40px 32px;
+}
+
+.forbidden-badge {
+  display: inline-block;
+  background: #ef444422;
+  color: #ef4444;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+  border: 1px solid #ef444444;
+}
+
+.forbidden-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* ==========================================================================
+   GOOGLE OAUTH BUTTON & SEPARATOR STYLING
+   ========================================================================== */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0;
+  color: var(--text-muted, #94a3b8);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.auth-divider span {
+  padding: 0 12px;
+}
+
+.google-auth-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.google-auth-wrapper iframe {
+  margin: 0 auto !important;
 }

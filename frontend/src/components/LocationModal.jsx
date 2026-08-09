@@ -28,9 +28,9 @@ export default function LocationModal({ isOpen, onClose, onSelectAddress, addres
     houseNumber: '',
     street: '',
     area: '',
-    city: 'New Delhi',
-    state: 'Delhi',
-    pincode: '110001',
+    city: '',
+    state: '',
+    pincode: '',
     landmark: ''
   })
 
@@ -79,12 +79,12 @@ export default function LocationModal({ isOpen, onClose, onSelectAddress, addres
           setDetectedLocation({
             latitude,
             longitude,
-            addressText: `Connaught Place, New Delhi (GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
-            city: 'New Delhi',
-            state: 'Delhi',
-            pincode: '110001',
-            street: 'Connaught Circus',
-            area: 'Connaught Place'
+            addressText: `GPS Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
+            city: '',
+            state: '',
+            pincode: '',
+            street: '',
+            area: ''
           })
         } finally {
           setDetecting(false)
@@ -110,9 +110,9 @@ export default function LocationModal({ isOpen, onClose, onSelectAddress, addres
     if (!detectedLocation) return
     const newAddr = {
       label: addressForm.label || 'Home',
-      fullName: addressForm.fullName || 'Valued Customer',
-      phone: addressForm.phone || '9876543210',
-      houseNumber: addressForm.houseNumber || 'Flat 101',
+      fullName: addressForm.fullName || 'Customer',
+      phone: addressForm.phone || '',
+      houseNumber: addressForm.houseNumber || '',
       street: addressForm.street || detectedLocation.street,
       area: addressForm.area || detectedLocation.area,
       city: detectedLocation.city,
@@ -222,7 +222,7 @@ export default function LocationModal({ isOpen, onClose, onSelectAddress, addres
               <label className="input-label-v2">Full Name *</label>
               <input
                 type="text"
-                placeholder="e.g. Suryansh Soni"
+                placeholder="e.g. Full Name"
                 required
                 className="input-field-v2"
                 value={addressForm.fullName}

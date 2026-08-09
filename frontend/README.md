@@ -1,16 +1,42 @@
-# React + Vite
+# ⚛️ Zesty Frontend — React 19 + Vite 8 Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The frontend tier of Zesty is a single-page application built with React 19, Vite 8, and Vanilla CSS design tokens.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Quick Start
 
-## React Compiler
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Visit `http://localhost:5173`.
 
-## Expanding the Oxlint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## 📦 Key Libraries & Dependencies
+
+- `react` & `react-dom`: v19.0.0
+- `vite`: v8.1.5
+- `@react-oauth/google`: Google OAuth 2.0 Identity Services wrapper
+- `@emailjs/browser`: Client-side direct email dispatch SDK
+- `socket.io-client`: Real-time WebSocket event subscriber
+
+---
+
+## 🏛️ Component Architecture
+
+- **`App.jsx`**: Main routing, layout canvas, navigation bar, modal manager, and state hub.
+- **`App.css`**: Design system tokens, glassmorphism UI rules, dark/light themes, animations.
+- **`components/`**: Modular component views (`ReelCard`, `RestaurantDashboard`, `DeliveryDashboard`, `SocialUserProfile`, `LocationModal`, `CartConflictModal`, `AdminControlPanel`).
+
+---
+
+## ⚡ Request Lifecycle Flow
+
+```text
+User Action ──► Event Handler ──► Local Component / App State ──► fetch() API Helper ──► Backend API ──► UI Re-render
+```

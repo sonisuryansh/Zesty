@@ -56,21 +56,34 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
-// Anti NoSQL Injection & HTTP Parameter Pollution
-app.use(mongoSanitize());
-app.use(hpp());
-
-// Global Rate Limiter
-const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 1000,
-    message: { message: "Too many requests from this IP, please try again later." }
-});
-app.use(globalLimiter);
-
 app.use(cookieParser(process.env.COOKIE_SECRET || 'zesty_cookie_secret_signed_2026'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Safe In-Place Anti-NoSQL Injection Middleware
+function customMongoSanitize(req, res, next) {
+    const sanitize = (obj) => {
+        if (!obj || typeof obj !== 'object') return;
+        for (const key of Object.keys(obj)) {
+            if (key.startsWith('$') || key.includes('.')) {
+                const cleanKey = key.replace(/^\$|\./g, '_');
+                obj[cleanKey] = obj[key];
+                delete obj[key];
+                sanitize(obj[cleanKey]);
+            } else {
+                sanitize(obj[key]);
+            }
+        }
+    };
+
+    if (req.body) sanitize(req.body);
+    if (req.params) sanitize(req.params);
+    if (req.query && typeof req.query === 'object') sanitize(req.query);
+    next();
+}
+
+app.use(customMongoSanitize);
+app.use(hpp());
 
 app.get('/', (req, res) => {
     res.json({ message: "Zesty Multi-Role Enterprise Platform Security API Active" });

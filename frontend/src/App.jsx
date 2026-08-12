@@ -1004,7 +1004,7 @@ function App() {
               </button>
 
               <button
-                className="ig-nav-item"
+                className="ig-nav-item location-nav-item"
                 onClick={() => setLocationModalOpen(true)}
               >
                 <IconPinIG />
@@ -1081,6 +1081,22 @@ function App() {
 
       {/* 2. MAIN CONTENT CANVAS */}
       <div className="ig-main-canvas">
+        {/* MOBILE TOP HEADER BAR (Visible only on screens <= 768px) */}
+        <header className="ig-mobile-top-header">
+          <div className="ig-mobile-logo" onClick={() => setCurrentView('feed')}>
+            <img src="/favicon.svg" alt="Zesty Logo" className="ig-mobile-logo-icon" />
+            <span className="ig-mobile-logo-text">Zesty</span>
+          </div>
+          <div className="ig-mobile-actions">
+            <button className="ig-mobile-action-btn" onClick={() => setLocationModalOpen(true)} title="Location">
+              <IconPinIG />
+            </button>
+            <button className="ig-mobile-action-btn" onClick={toggleThemeMode} title="Toggle Theme">
+              <span>{themeMode === 'dark' ? '☀️' : '🌙'}</span>
+            </button>
+          </div>
+        </header>
+
         {/* REELS DISCOVERY FEED & REELS SECTION VIEW (Customer / Guest Only) */}
         {(!session || session.type === 'user') && (currentView === 'feed' || currentView === 'reels') && (
           <div className="ig-feed-layout">

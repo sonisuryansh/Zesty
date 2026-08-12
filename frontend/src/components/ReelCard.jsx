@@ -32,6 +32,7 @@ export default function ReelCard({ food, onAddToCart, onOpenRestaurant, onEmailO
   const videoRef = useRef(null)
   const [muted, setMuted] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [imageError, setImageError] = useState(false)
   const [likeCount, setLikeCount] = useState(food.likesCount || 0)
 
   useEffect(() => {
@@ -72,15 +73,14 @@ export default function ReelCard({ food, onAddToCart, onOpenRestaurant, onEmailO
   const rating = food.foodPartner?.rating || 0
   const price = food.price || 0
 
-  const isImagePost = food.mediaType === 'image' || (!food.video && food.image)
-
   return (
     <div className="reel-card ig-reel-card">
-      {food.image ? (
+      {food.image && !imageError ? (
         <img
           src={food.image}
           alt={food.name || 'Dish'}
           className="reel-video reel-image-post"
+          onError={() => setImageError(true)}
         />
       ) : food.video ? (
         <video
@@ -95,7 +95,10 @@ export default function ReelCard({ food, onAddToCart, onOpenRestaurant, onEmailO
         />
       ) : (
         <div className="reel-video reel-image-post flex-center placeholder-media">
-          <span style={{ fontSize: '48px' }}>🍲</span>
+          <div className="placeholder-food-hero">
+            <span className="placeholder-emoji">🍲</span>
+            <span className="placeholder-dish-name">{food.name || 'Special Food Item'}</span>
+          </div>
         </div>
       )}
 

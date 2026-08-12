@@ -17,7 +17,7 @@ import SocialUserProfile from './components/SocialUserProfile'
 import FooterPageModal from './components/FooterPageModal'
 import AdminControlPanel from './components/AdminControlPanel'
 
-const API = '/api'
+const API = 'https://zesty-af0e.onrender.com/api'
 let socket = null
 
 const SUGGESTED_CREATORS = []
@@ -50,15 +50,15 @@ async function request(path, options = {}) {
 
 
 // SVG Icons for Instagram Dark Navigation Bar
-const IconHomeIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.1L1 12h3v9h7v-6h2v6h7v-9h3L12 2.1z"/></svg>)
-const IconSearchIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>)
-const IconReelsIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5"/></svg>)
-const IconHeartIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>)
-const IconPlusIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>)
-const IconBagIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>)
-const IconPinIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>)
-const IconUserIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>)
-const IconLogoutIG = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>)
+const IconHomeIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.1L1 12h3v9h7v-6h2v6h7v-9h3L12 2.1z" /></svg>)
+const IconSearchIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>)
+const IconReelsIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="2" width="20" height="20" rx="5" /><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5" /></svg>)
+const IconHeartIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>)
+const IconPlusIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>)
+const IconBagIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>)
+const IconPinIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>)
+const IconUserIG = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>)
+const IconLogoutIG = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>)
 const IconClose = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>)
 
 const CATEGORIES = [
@@ -158,14 +158,14 @@ function App() {
     try {
       const saved = localStorage.getItem('zesty_guest_cart')
       if (saved) return JSON.parse(saved)
-    } catch {}
+    } catch { }
     return { items: [], subtotal: 0, foodPartner: null }
   }
 
   const saveGuestCart = (newCart) => {
     try {
       localStorage.setItem('zesty_guest_cart', JSON.stringify(newCart))
-    } catch {}
+    } catch { }
   }
 
   useEffect(() => {
@@ -216,7 +216,7 @@ function App() {
     try {
       const data = await request('/cart')
       setCart(data.cart || { items: [], subtotal: 0, foodPartner: null })
-    } catch {}
+    } catch { }
   }
 
   const fetchAddresses = async () => {
@@ -226,14 +226,14 @@ function App() {
       if (data.addresses && data.addresses.length > 0) {
         setSelectedAddress(data.addresses.find(a => a.isDefault) || data.addresses[0])
       }
-    } catch {}
+    } catch { }
   }
 
   const fetchUserOrders = async () => {
     try {
       const data = await request('/orders/my-orders')
       setUserOrders(data.orders || [])
-    } catch {}
+    } catch { }
   }
 
   // Strict Role Portal Guard Navigation Handler
@@ -618,7 +618,7 @@ function App() {
           })
           setCart(mergeRes.cart)
           localStorage.removeItem('zesty_guest_cart')
-        } catch {}
+        } catch { }
       }
 
       setAuthLoading(false)
@@ -703,7 +703,7 @@ function App() {
           })
           setCart(mergeRes.cart)
           localStorage.removeItem('zesty_guest_cart')
-        } catch {}
+        } catch { }
       }
 
       setAuthLoading(false)
@@ -756,7 +756,7 @@ function App() {
       setAdminStats(stats.stats)
       const users = await request('/admin/users')
       setAdminUsers(users.users)
-    } catch {}
+    } catch { }
   }
 
   useEffect(() => {
@@ -1539,7 +1539,7 @@ function App() {
               <div className="checkout-payment-section-v2">
                 <h4 className="summary-title">💳 Select Payment Method</h4>
                 <div className="payment-options-grid-v2">
-                  <div 
+                  <div
                     className={`payment-card-v2 ${selectedPaymentMethod === 'UPI' ? 'active' : ''}`}
                     onClick={() => setSelectedPaymentMethod('UPI')}
                   >
@@ -1553,7 +1553,7 @@ function App() {
                     </div>
                   </div>
 
-                  <div 
+                  <div
                     className={`payment-card-v2 ${selectedPaymentMethod === 'Razorpay' ? 'active' : ''}`}
                     onClick={() => setSelectedPaymentMethod('Razorpay')}
                   >
@@ -1567,7 +1567,7 @@ function App() {
                     </div>
                   </div>
 
-                  <div 
+                  <div
                     className={`payment-card-v2 ${selectedPaymentMethod === 'COD' ? 'active' : ''}`}
                     onClick={() => setSelectedPaymentMethod('COD')}
                   >
@@ -1588,8 +1588,8 @@ function App() {
               {selectedPaymentMethod === 'COD'
                 ? `✓ Confirm Order (Cash on Delivery) • ₹${grandTotal}`
                 : selectedPaymentMethod === 'UPI'
-                ? `📱 Pay via UPI & Dynamic QR Code • ₹${grandTotal}`
-                : `⚡ Pay Online (Razorpay Gateway) • ₹${grandTotal}`}
+                  ? `📱 Pay via UPI & Dynamic QR Code • ₹${grandTotal}`
+                  : `⚡ Pay Online (Razorpay Gateway) • ₹${grandTotal}`}
             </button>
           </div>
         </div>
@@ -1600,7 +1600,7 @@ function App() {
         <div className="modal-backdrop" onClick={() => { setModal(null); setGuestCheckoutPrompt(false); }}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setModal(null); setGuestCheckoutPrompt(false); }}><IconClose /></button>
-            
+
             {accountType === 'foodpartner' ? (
               <div className="auth-header-block">
                 <h3>🏪 Partner Kitchen Portal</h3>
@@ -1749,8 +1749,7 @@ function App() {
               <div className="qr-image-wrapper">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-                    `upi://pay?pa=zesty.pay@razorpay&pn=Zesty%20Food%20Delivery&am=${
-                      onlinePaymentModalData.amountRupees || Math.round((onlinePaymentModalData.amount || 0) / 100)
+                    `upi://pay?pa=zesty.pay@razorpay&pn=Zesty%20Food%20Delivery&am=${onlinePaymentModalData.amountRupees || Math.round((onlinePaymentModalData.amount || 0) / 100)
                     }&cu=INR&tn=Order%20${onlinePaymentModalData.orderNumber}`
                   )}`}
                   alt="Zesty UPI QR Code"

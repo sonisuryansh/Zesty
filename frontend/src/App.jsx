@@ -18,6 +18,7 @@ import FooterPageModal from './components/FooterPageModal'
 import AdminControlPanel from './components/AdminControlPanel'
 
 const API = 'https://zesty-af0e.onrender.com/api'
+const SOCKET_URL = 'https://zesty-af0e.onrender.com'
 let socket = null
 
 const SUGGESTED_CREATORS = []
@@ -170,7 +171,11 @@ function App() {
 
   useEffect(() => {
     checkSession()
-    socket = io(window.location.origin)
+    socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 3,
+      timeout: 10000,
+    })
     return () => {
       if (socket) socket.disconnect()
     }
@@ -1103,21 +1108,47 @@ function App() {
             {/* Center Feed Column */}
             <div className="ig-center-column">
               {/* INSTAGRAM TOP STORIES BAR (Horizontal Scrolling Circles with Gradient Rings) */}
-              <div className="ig-stories-bar">
-                {CATEGORIES.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className={`ig-story-item ${activeCategory === cat.id ? 'active' : ''}`}
-                    onClick={() => setActiveCategory(cat.id)}
-                  >
-                    <div className="ig-story-ring">
-                      <div className="ig-story-circle">
-                        <span className="story-emoji">{cat.icon}</span>
+              <div className="ig-stories-scroll-wrapper">
+                <button
+                  className="ig-stories-arrow ig-stories-arrow-left"
+                  onClick={() => {
+                    const bar = document.getElementById('ig-stories-bar-inner')
+                    if (bar) bar.scrollBy({ left: -200, behavior: 'smooth' })
+                  }}
+                  aria-label="Scroll categories left"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                <div className="ig-stories-bar" id="ig-stories-bar-inner">
+                  {CATEGORIES.map((cat) => (
+                    <div
+                      key={cat.id}
+                      className={`ig-story-item ${activeCategory === cat.id ? 'active' : ''}`}
+                      onClick={() => setActiveCategory(cat.id)}
+                    >
+                      <div className="ig-story-ring">
+                        <div className="ig-story-circle">
+                          <span className="story-emoji">{cat.icon}</span>
+                        </div>
                       </div>
+                      <span className="story-name">{cat.handle}</span>
                     </div>
-                    <span className="story-name">{cat.handle}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <button
+                  className="ig-stories-arrow ig-stories-arrow-right"
+                  onClick={() => {
+                    const bar = document.getElementById('ig-stories-bar-inner')
+                    if (bar) bar.scrollBy({ left: 200, behavior: 'smooth' })
+                  }}
+                  aria-label="Scroll categories right"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
               </div>
 
               {/* REELS VIDEO FEED */}
@@ -1673,7 +1704,7 @@ function App() {
                 onError={handleGoogleError}
                 shape="rectangular"
                 size="large"
-                width="100%"
+                width={400}
                 theme="outline"
                 text={mode === 'signup' ? 'signup_with' : 'signin_with'}
               />

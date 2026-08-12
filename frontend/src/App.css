@@ -5075,13 +5075,64 @@ body.modal-open {
 }
 
 /* INSTAGRAM TOP STORIES BAR */
+.ig-stories-scroll-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border-bottom: 1px solid #1c1c1c;
+  padding: 10px 0 4px;
+}
+
+.ig-stories-arrow {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(30, 30, 30, 0.9);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1);
+  padding: 0;
+}
+
+.ig-stories-arrow:hover {
+  background: rgba(60, 60, 60, 0.98);
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+.ig-stories-arrow:active {
+  transform: scale(0.93);
+}
+
+/* Light theme arrow buttons */
+.ig-web-shell[data-theme="light"] .ig-stories-arrow {
+  background: #f0f0f0;
+  color: #111111;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08);
+}
+
+.ig-web-shell[data-theme="light"] .ig-stories-arrow:hover {
+  background: #e0e0e0;
+}
+
+.ig-web-shell[data-theme="light"] .ig-stories-scroll-wrapper {
+  border-bottom-color: #e5e5e5;
+}
+
 .ig-stories-bar {
   display: flex;
   gap: 18px;
-  padding: 16px 4px 20px;
+  padding: 6px 4px 16px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1px solid #1c1c1c;
+  flex: 1;
 }
 
 .ig-stories-bar::-webkit-scrollbar {
@@ -5504,6 +5555,11 @@ body.modal-open {
     gap: 14px;
     width: 100%;
     box-sizing: border-box;
+  }
+
+  /* Hide scroll arrows on mobile — touch swipe handles scrolling */
+  .ig-stories-arrow {
+    display: none;
   }
 
   .ig-story-circle {

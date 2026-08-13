@@ -18,12 +18,19 @@ export default function DeliveryDashboard({ session, showToast, socket, activeTa
   const [financials, setFinancials] = useState(null)
 
   // Rider Payout & Payment State
-  const [riderPayoutForm, setRiderPayoutForm] = useState({
-    upiId: '',
-    accountHolder: '',
-    accountNumber: '',
-    ifscCode: ''
+  const [riderPayoutForm, setRiderPayoutForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem('zesty_payout_rider')
+      if (saved) return JSON.parse(saved)
+    } catch { }
+    return { upiId: '', accountHolder: '', accountNumber: '', ifscCode: '' }
   })
+  const [riderPayoutSaved, setRiderPayoutSaved] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem('zesty_payout_rider'))
+    } catch { return false }
+  })
+  const [riderPayoutEditing, setRiderPayoutEditing] = useState(false)
   const [riderPayoutHistory, setRiderPayoutHistory] = useState([])
   const [withdrawRequesting, setWithdrawRequesting] = useState(false)
 
@@ -122,6 +129,11 @@ export default function DeliveryDashboard({ session, showToast, socket, activeTa
 
   const handleSaveRiderPayout = (e) => {
     e.preventDefault()
+    try {
+      localStorage.setItem('zesty_payout_rider', JSON.stringify(riderPayoutForm))
+    } catch { }
+    setRiderPayoutSaved(true)
+    setRiderPayoutEditing(false)
     showToast('Rider payout UPI ID saved! Earnings will be sent to ' + riderPayoutForm.upiId, 'success')
   }
 
@@ -355,58 +367,109 @@ export default function DeliveryDashboard({ session, showToast, socket, activeTa
               </button>
             </div>
 
-            {/* Rider UPI & Bank Config Form */}
+            {/* Rider UPI & Bank Config — View or Edit */}
             <div className="payout-config-card">
-              <h4>💳 Rider UPI & Bank Account Details</h4>
-              <form onSubmit={handleSaveRiderPayout} className="payout-form-grid">
-                <div className="form-group-v2">
-                  <label className="input-label-v2">Rider Instant UPI ID *</label>
-                  <input
-                    type="text"
-                    required
-                    className="input-field-v2"
-                    value={riderPayoutForm.upiId}
-                    onChange={(e) => setRiderPayoutForm({ ...riderPayoutForm, upiId: e.target.value })}
-                    placeholder="e.g. rider@okicici"
-                  />
-                </div>
+              <div className="payout-card-header">
+                <h4>💳 Rider UPI &amp; Bank Account Details</h4>
+                {riderPayoutSaved && !riderPayoutEditing && (
+                  <button
+                    type="button"
+                    className="payout-edit-btn"
+                    onClick={() => setRiderPayoutEditing(true)}
+                  >
+                    ✏️ Edit
+                  </button>
+                )}
+              </div>
 
-                <div className="form-group-v2">
-                  <label className="input-label-v2">Account Holder Name *</label>
-                  <input
-                    type="text"
-                    required
-                    className="input-field-v2"
-                    value={riderPayoutForm.accountHolder}
-                    onChange={(e) => setRiderPayoutForm({ ...riderPayoutForm, accountHolder: e.target.value })}
-                  />
+              {riderPayoutSaved && !riderPayoutEditing ? (
+                /* ── READ-ONLY SUMMARY VIEW ── */
+                <div className="payout-saved-view">
+                  <div className="payout-saved-row">
+                    <span className="payout-saved-label">UPI ID</span>
+                    <span className="payout-saved-value upi-chip">📱 {riderPayoutForm.upiId}</span>
+                  </div>
+                  <div className="payout-saved-row">
+                    <span className="payout-saved-label">Account Holder</span>
+                    <span className="payout-saved-value">{riderPayoutForm.accountHolder}</span>
+                  </div>
+                  {riderPayoutForm.accountNumber && (
+                    <div className="payout-saved-row">
+                      <span className="payout-saved-label">Bank Account</span>
+                      <span className="payout-saved-value">{'•'.repeat(Math.max(0, riderPayoutForm.accountNumber.length - 4)) + riderPayoutForm.accountNumber.slice(-4)}</span>
+                    </div>
+                  )}
+                  {riderPayoutForm.ifscCode && (
+                    <div className="payout-saved-row">
+                      <span className="payout-saved-label">IFSC Code</span>
+                      <span className="payout-saved-value">{riderPayoutForm.ifscCode.toUpperCase()}</span>
+                    </div>
+                  )}
+                  <p className="payout-saved-note">✅ Rider earnings will be sent to this account. Click Edit to make changes.</p>
                 </div>
-
-                <div className="form-grid-2col">
+              ) : (
+                /* ── EDIT FORM ── */
+                <form onSubmit={handleSaveRiderPayout} className="payout-form-grid">
                   <div className="form-group-v2">
-                    <label className="input-label-v2">Bank Account Number</label>
+                    <label className="input-label-v2">Rider Instant UPI ID *</label>
                     <input
                       type="text"
+                      required
                       className="input-field-v2"
-                      value={riderPayoutForm.accountNumber}
-                      onChange={(e) => setRiderPayoutForm({ ...riderPayoutForm, accountNumber: e.target.value })}
+                      value={riderPayoutForm.upiId}
+                      onChange={(e) => setRiderPayoutForm({ ...riderPayoutForm, upiId: e.target.value })}
+                      placeholder="e.g. rider@okicici"
                     />
                   </div>
+
                   <div className="form-group-v2">
-                    <label className="input-label-v2">IFSC Code</label>
+                    <label className="input-label-v2">Account Holder Name *</label>
                     <input
                       type="text"
+                      required
                       className="input-field-v2"
-                      value={riderPayoutForm.ifscCode}
-                      onChange={(e) => setRiderPayoutForm({ ...riderPayoutForm, ifscCode: e.target.value })}
+                      value={riderPayoutForm.accountHolder}
+                      onChange={(e) => setRiderPayoutForm({ ...riderPayoutForm, accountHolder: e.target.value })}
                     />
                   </div>
-                </div>
 
-                <button type="submit" className="secondary-btn save-payout-btn">
-                  Save Rider Payout Method
-                </button>
-              </form>
+                  <div className="form-grid-2col">
+                    <div className="form-group-v2">
+                      <label className="input-label-v2">Bank Account Number</label>
+                      <input
+                        type="text"
+                        className="input-field-v2"
+                        value={riderPayoutForm.accountNumber}
+                        onChange={(e) => setRiderPayoutForm({ ...riderPayoutForm, accountNumber: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group-v2">
+                      <label className="input-label-v2">IFSC Code</label>
+                      <input
+                        type="text"
+                        className="input-field-v2"
+                        value={riderPayoutForm.ifscCode}
+                        onChange={(e) => setRiderPayoutForm({ ...riderPayoutForm, ifscCode: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="payout-form-actions">
+                    <button type="submit" className="primary-btn save-payout-btn">
+                      {riderPayoutSaved ? '💾 Update Rider Payout Method' : '💾 Save Rider Payout Method'}
+                    </button>
+                    {riderPayoutEditing && (
+                      <button
+                        type="button"
+                        className="payout-cancel-btn"
+                        onClick={() => setRiderPayoutEditing(false)}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
             </div>
           </div>
 

@@ -27,13 +27,19 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
   const [financials, setFinancials] = useState(null)
 
   // Payment & Payout Settings State
-  const [payoutForm, setPayoutForm] = useState({
-    upiId: '',
-    accountHolder: '',
-    accountNumber: '',
-    ifscCode: '',
-    bankName: ''
+  const [payoutForm, setPayoutForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem('zesty_payout_partner')
+      if (saved) return JSON.parse(saved)
+    } catch { }
+    return { upiId: '', accountHolder: '', accountNumber: '', ifscCode: '', bankName: '' }
   })
+  const [payoutSaved, setPayoutSaved] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem('zesty_payout_partner'))
+    } catch { return false }
+  })
+  const [payoutEditing, setPayoutEditing] = useState(false)
   const [payoutHistory, setPayoutHistory] = useState([])
   const [payoutRequesting, setPayoutRequesting] = useState(false)
 
@@ -116,6 +122,11 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
 
   const handleSavePayoutSettings = (e) => {
     e.preventDefault()
+    try {
+      localStorage.setItem('zesty_payout_partner', JSON.stringify(payoutForm))
+    } catch { }
+    setPayoutSaved(true)
+    setPayoutEditing(false)
     showToast('Payment receive methods saved! Payments will be sent to ' + payoutForm.upiId, 'success')
   }
 
@@ -375,58 +386,109 @@ export default function RestaurantDashboard({ session, showToast, activeTab = 'o
               </button>
             </div>
 
-            {/* UPI & Bank Config Form */}
+            {/* UPI & Bank Config — View or Edit */}
             <div className="payout-config-card">
-              <h4>💳 Payout Method & Bank Details</h4>
-              <form onSubmit={handleSavePayoutSettings} className="payout-form-grid">
-                <div className="form-group-v2">
-                  <label className="input-label-v2">Instant UPI ID *</label>
-                  <input
-                    type="text"
-                    required
-                    className="input-field-v2"
-                    value={payoutForm.upiId}
-                    onChange={(e) => setPayoutForm({ ...payoutForm, upiId: e.target.value })}
-                    placeholder="e.g. restaurant@upi"
-                  />
-                </div>
+              <div className="payout-card-header">
+                <h4>💳 Payout Method &amp; Bank Details</h4>
+                {payoutSaved && !payoutEditing && (
+                  <button
+                    type="button"
+                    className="payout-edit-btn"
+                    onClick={() => setPayoutEditing(true)}
+                  >
+                    ✏️ Edit
+                  </button>
+                )}
+              </div>
 
-                <div className="form-group-v2">
-                  <label className="input-label-v2">Account Holder Name *</label>
-                  <input
-                    type="text"
-                    required
-                    className="input-field-v2"
-                    value={payoutForm.accountHolder}
-                    onChange={(e) => setPayoutForm({ ...payoutForm, accountHolder: e.target.value })}
-                  />
+              {payoutSaved && !payoutEditing ? (
+                /* ── READ-ONLY SUMMARY VIEW ── */
+                <div className="payout-saved-view">
+                  <div className="payout-saved-row">
+                    <span className="payout-saved-label">UPI ID</span>
+                    <span className="payout-saved-value upi-chip">📱 {payoutForm.upiId}</span>
+                  </div>
+                  <div className="payout-saved-row">
+                    <span className="payout-saved-label">Account Holder</span>
+                    <span className="payout-saved-value">{payoutForm.accountHolder}</span>
+                  </div>
+                  {payoutForm.accountNumber && (
+                    <div className="payout-saved-row">
+                      <span className="payout-saved-label">Bank Account</span>
+                      <span className="payout-saved-value">{'•'.repeat(Math.max(0, payoutForm.accountNumber.length - 4)) + payoutForm.accountNumber.slice(-4)}</span>
+                    </div>
+                  )}
+                  {payoutForm.ifscCode && (
+                    <div className="payout-saved-row">
+                      <span className="payout-saved-label">IFSC Code</span>
+                      <span className="payout-saved-value">{payoutForm.ifscCode.toUpperCase()}</span>
+                    </div>
+                  )}
+                  <p className="payout-saved-note">✅ Payouts will be sent to this account. Click Edit to make changes.</p>
                 </div>
-
-                <div className="form-grid-2col">
+              ) : (
+                /* ── EDIT FORM ── */
+                <form onSubmit={handleSavePayoutSettings} className="payout-form-grid">
                   <div className="form-group-v2">
-                    <label className="input-label-v2">Bank Account Number</label>
+                    <label className="input-label-v2">Instant UPI ID *</label>
                     <input
                       type="text"
+                      required
                       className="input-field-v2"
-                      value={payoutForm.accountNumber}
-                      onChange={(e) => setPayoutForm({ ...payoutForm, accountNumber: e.target.value })}
+                      value={payoutForm.upiId}
+                      onChange={(e) => setPayoutForm({ ...payoutForm, upiId: e.target.value })}
+                      placeholder="e.g. restaurant@upi"
                     />
                   </div>
+
                   <div className="form-group-v2">
-                    <label className="input-label-v2">IFSC Code</label>
+                    <label className="input-label-v2">Account Holder Name *</label>
                     <input
                       type="text"
+                      required
                       className="input-field-v2"
-                      value={payoutForm.ifscCode}
-                      onChange={(e) => setPayoutForm({ ...payoutForm, ifscCode: e.target.value })}
+                      value={payoutForm.accountHolder}
+                      onChange={(e) => setPayoutForm({ ...payoutForm, accountHolder: e.target.value })}
                     />
                   </div>
-                </div>
 
-                <button type="submit" className="secondary-btn save-payout-btn">
-                  Save Payout Methods
-                </button>
-              </form>
+                  <div className="form-grid-2col">
+                    <div className="form-group-v2">
+                      <label className="input-label-v2">Bank Account Number</label>
+                      <input
+                        type="text"
+                        className="input-field-v2"
+                        value={payoutForm.accountNumber}
+                        onChange={(e) => setPayoutForm({ ...payoutForm, accountNumber: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group-v2">
+                      <label className="input-label-v2">IFSC Code</label>
+                      <input
+                        type="text"
+                        className="input-field-v2"
+                        value={payoutForm.ifscCode}
+                        onChange={(e) => setPayoutForm({ ...payoutForm, ifscCode: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="payout-form-actions">
+                    <button type="submit" className="primary-btn save-payout-btn">
+                      {payoutSaved ? '💾 Update Payout Methods' : '💾 Save Payout Methods'}
+                    </button>
+                    {payoutEditing && (
+                      <button
+                        type="button"
+                        className="payout-cancel-btn"
+                        onClick={() => setPayoutEditing(false)}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
             </div>
           </div>
 

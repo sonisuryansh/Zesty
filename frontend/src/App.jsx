@@ -1681,10 +1681,10 @@ function App() {
               {mode === 'signup' && accountType === 'delivery' && (
                 <>
                   <input type="text" name="name" placeholder="Rider Full Name" required />
-                  <input type="tel" name="phone" placeholder="Mobile Number" required />
+                  <input type="tel" name="phone" placeholder="Mobile Number" required pattern="^[0-9+]{10,15}$" title="Enter a valid phone number (10–15 digits, may start with +)" />
                 </>
               )}
-              <input type="email" name="email" placeholder="Email Address" required />
+              <input type="email" name="email" placeholder="Email Address" required pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$" title="Enter a valid email address (e.g. name@example.com)" />
               <input type="password" name="password" placeholder="Password" required />
 
               {authError && <p className="error-msg">{authError}</p>}
@@ -1752,13 +1752,17 @@ function App() {
                 type="email"
                 placeholder="Your Email"
                 required
+                pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+                title="Enter a valid email address (e.g. name@example.com)"
                 value={orderForm.email}
                 onChange={(e) => setOrderForm({ ...orderForm, email: e.target.value })}
               />
               <input
-                type="text"
+                type="tel"
                 placeholder="Phone Number"
                 required
+                pattern="^[0-9+]{10,15}$"
+                title="Enter a valid phone number (10–15 digits, may start with +)"
                 value={orderForm.phone}
                 onChange={(e) => setOrderForm({ ...orderForm, phone: e.target.value })}
               />
